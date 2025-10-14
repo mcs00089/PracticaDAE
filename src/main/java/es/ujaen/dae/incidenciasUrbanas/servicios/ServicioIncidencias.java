@@ -1,21 +1,28 @@
 package es.ujaen.dae.incidenciasUrbanas.servicios;
 
+import es.ujaen.dae.incidenciasUrbanas.entidades.Estado;
+import es.ujaen.dae.incidenciasUrbanas.entidades.Incidencia;
+import es.ujaen.dae.incidenciasUrbanas.entidades.TipoIncidencia;
 import es.ujaen.dae.incidenciasUrbanas.entidades.Usuario;
-import es.ujaen.dae.incidenciasUrbanas.excepciones.CredencialesInvalidas;
-import es.ujaen.dae.incidenciasUrbanas.excepciones.UsuarioNoEncontrado;
-import es.ujaen.dae.incidenciasUrbanas.excepciones.UsuarioYaExiste;
+import es.ujaen.dae.incidenciasUrbanas.excepciones.*;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.UUID;
+import java.util.List;
+import java.util.stream.Collectors;
 
 
 @Service
 @Validated
 public class ServicioIncidencias {
     private final Map<String, Usuario> usuarios = new TreeMap<>();
+    private final Map<UUID, Incidencia> incidencias = new HashMap<>();
+    private final Map<UUID, TipoIncidencia> tiposIncidencia = new HashMap<>();
 
 
     private static final Usuario admin = new Usuario(0,"Admin", "Administrador", LocalDate.of(1990, 1, 1),
@@ -27,6 +34,12 @@ public class ServicioIncidencias {
     );
 
 
+    /**
+     * @brief Registra un nuevo usuario en el sistema.
+     * Añade el usuario al mapa de usuarios registrados
+     * @param usuario Objeto de tipo Usuario con los datos del nuevo usuario a registrar.
+     * @throws UsuarioYaExiste Si ya existe un usuario con el mismo login.
+     */
     public void registrarUsuario(Usuario usuario){
         if (usuarios.containsKey(usuario.getLogin())) {
             throw new UsuarioYaExiste();
@@ -34,6 +47,15 @@ public class ServicioIncidencias {
         usuarios.put(usuario.getLogin(), usuario);
     }
 
+
+    /**
+     * @brief Inicia sesión con un usuario registrado.
+     * Busca el usuario por su login y comprueba que la contraseña sea correcta.
+     * @param login Login de usuario.
+     * @param clave Contraseña del usuario.
+     * @return El objeto Usuario autenticado.
+     * @throws CredencialesInvalidas Si el login no existe o la contraseña no coincide.
+     */
     public Usuario login(String login, String clave){
         Usuario usuario = usuarios.get(login);
         if (usuario == null || !usuario.getClave().equals(clave)) {
@@ -42,6 +64,14 @@ public class ServicioIncidencias {
         return usuario;
     }
 
+
+    /**
+     * @brief Actualiza los datos de un usuario existente.
+     * Reemplaza los datos del usuario con los nuevos valores.
+     * @param login Login del usuario que se desea actualizar.
+     * @param nuevosDatos Usuario con los nuevos valores de los campos a modificar.
+     * @throws UsuarioNoEncontrado Si el usuario con el login especificado no existe.
+     */
     public void actualizarUsuario(String login, Usuario nuevosDatos) {
         Usuario usuActualizar = usuarios.get(login);
         if (usuActualizar == null) {
@@ -57,4 +87,95 @@ public class ServicioIncidencias {
         usuActualizar.setClave(nuevosDatos.getClave());
 
     }
+
+
+    /**
+     * @brief Registra una nueva incidencia de un usuario.
+     * Crea una nueva incidencia asociada al usuario y al tipo de incidencia indicado,
+     * y la añade al sistema.
+     * @param login Login del usuario que hace la incidencia.
+     * @param idTipoIncidencia Identificador único del tipo de incidencia.
+     * @param descripcion Descripción detallada del problema.
+     * @param localizacion Dirección o zona donde ocurre la incidencia.
+     * @param gps Coordenadas GPS del lugar de la incidencia.
+     * @return La incidencia recién creada.
+     * @throws UsuarioNoEncontrado Si el usuario con el login indicado no existe.
+     * @throws TipoIncidenciaNoencontrado Si el tipo de incidencia indicado no existe.
+     */
+    public Incidencia registrarIncidencia(String login, UUID idTipoIncidencia, String descripcion, String localizacion, String gps) {
+        Usuario usuario = usuarios.get(login);
+        if (usuario == null) {
+            throw new UsuarioNoEncontrado();
+        }
+
+        TipoIncidencia tipo = tiposIncidencia.get(idTipoIncidencia);
+        if (tipo == null) {
+            throw new TipoIncidenciaNoencontrado();
+        }
+
+        Incidencia nueva = new Incidencia(usuario, tipo, descripcion, localizacion, gps);
+        incidencias.put(nueva.getId(), nueva);
+        return nueva;
+    }
+
+
+    /**
+     * @brief Lista todas las incidencias registradas por un usuario.
+     * Filtra las incidencias en el sistema y devuelve solo las que pertenecen al usuario con el login indicado.
+     * @param login Login del usuario cuyas incidencias se desean consultar.
+     * @return Lista de incidencias asociadas al usuario.
+     */
+    public List<Incidencia> listarIncidenciasDeUsuario(String login) {
+        return incidencias.values().stream()
+                .filter(i -> i.getUsuario().getLogin().equals(login))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * @brief Busca incidencias en el sistema según tipo y/o estado.
+     * Permite filtrar las incidencias por tipo o por estado. Si alguno de los parámetros es null, se ignora ese filtro.
+     * @param idTipoIncidencia Identificador del tipo de incidencia.
+     * @param estado Estado de la incidencia.
+     * @return Lista de incidencias que cumplen los criterios de búsqueda.
+     */
+    public List<Incidencia> buscarIncidencias(UUID idTipoIncidencia, Estado estado) {
+        return incidencias.values().stream()
+                .filter(i -> (idTipoIncidencia == null || i.getTipo().getId().equals(idTipoIncidencia)) &&
+                        (estado == null || i.getEstado() == estado))
+                .collect(Collectors.toList());
+    }
+
+
+    /**
+     * @brief Elimina una incidencia del sistema.
+     * Permite borrar una incidencia si el usuario es su propietario y la incidencia está en estado PENDIENTE, o si el usuario tiene el rol de administrador.
+     *
+     * @param login Login del usuario que solicita el borrado.
+     * @param idIncidencia Identificador de la incidencia a eliminar.
+     *
+     * @throws IncidenciaNoEncontrada Si la incidencia indicada no existe.
+     * @throws UsuarioNoEncontrado Si el usuario no existe.
+     * @throws BorrarIncidenciaNoPendiente Si el usuario intenta borrar una incidencia no pendiente.
+     * @throws CredencialesInvalidas Si el usuario no tiene permiso para eliminar la incidencia.
+     */
+    public void borrarIncidencia(String login, UUID idIncidencia) {
+        Incidencia inc = incidencias.get(idIncidencia);
+        if (inc == null) throw new IncidenciaNoEncontrada();
+
+        Usuario usuario = usuarios.get(login);
+        if (usuario == null) throw new UsuarioNoEncontrado();
+
+        boolean esAdmin = usuario.getLogin().equals("admin");
+
+        if (esAdmin || inc.getUsuario().getLogin().equals(login)) {
+            if (esAdmin || inc.getEstado() == Estado.PENDIENTE) {
+                incidencias.remove(idIncidencia);
+            } else {
+                throw new BorrarIncidenciaNoPendiente();
+            }
+        } else {
+            throw new CredencialesInvalidas();
+        }
+    }
+
 }
