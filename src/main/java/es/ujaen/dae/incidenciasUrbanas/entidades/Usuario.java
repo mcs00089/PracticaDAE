@@ -1,5 +1,6 @@
 package es.ujaen.dae.incidenciasUrbanas.entidades;
 
+import es.ujaen.dae.incidenciasUrbanas.excepciones.PasswordIncorrecta;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -118,6 +119,13 @@ public class Usuario {
         this.clave = clave;
     }
 
+    //Método según UML
+    public void cambiarClave(String claveActual, String nuevaClave) {
+        if (!this.clave.equals(claveActual)) {
+            throw new PasswordIncorrecta();
+        }
+        this.clave = nuevaClave;
+    }
 
 
 }

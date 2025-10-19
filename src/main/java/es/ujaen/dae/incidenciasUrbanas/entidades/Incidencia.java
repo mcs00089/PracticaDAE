@@ -1,4 +1,6 @@
 package es.ujaen.dae.incidenciasUrbanas.entidades;
+import es.ujaen.dae.incidenciasUrbanas.excepciones.TipoIncidenciaInvalido;
+
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -77,6 +79,20 @@ public class Incidencia {
     public void actualizarEstado(Estado nuevoEstado) {
         this.estado = nuevoEstado;
     }
+
+    //Cambio de estado?
+    public void cambiarEstado(Estado nuevoEstado, Usuario usuario) {
+        this.estado = nuevoEstado;
+    }
+
+    //Cambio de tipo de incidencia
+    public void cambiarTipoIncidencia(TipoIncidencia nuevoTipo) {
+        if (nuevoTipo == null) {
+            throw new TipoIncidenciaInvalido();
+        }
+        this.tipo = nuevoTipo;
+    }
+
 
     // Opcional: para depuración o mostrar en pantalla
     @Override
