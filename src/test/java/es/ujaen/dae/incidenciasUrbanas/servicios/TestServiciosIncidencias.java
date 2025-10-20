@@ -61,6 +61,9 @@ public class TestServiciosIncidencias {
                 .isInstanceOf(UsuarioYaExiste.class);
     }
 
+
+
+
     @Test
     @DirtiesContext
     void testRegistrarUsuarioConLoginAdmin() {
