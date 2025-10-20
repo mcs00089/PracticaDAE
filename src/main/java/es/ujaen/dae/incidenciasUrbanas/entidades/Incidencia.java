@@ -97,14 +97,6 @@ public class Incidencia {
         this.usuario = usuario;
     }
 
-    //Cambio de tipo de incidencia
-    public void cambiarTipoIncidencia(TipoIncidencia nuevoTipo) {
-        if (nuevoTipo == null) {
-            throw new TipoIncidenciaInvalido();
-        }
-        this.tipo = nuevoTipo;
-    }
-
     @Override
     public String toString() {
         return "Incidencia{" +
