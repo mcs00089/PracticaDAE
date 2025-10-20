@@ -216,15 +216,12 @@ public class ServicioIncidencias {
     }
 
     public void borrarTipoIncidencia(Usuario usuario, TipoIncidencia tipo) {
-        if (usuario == null) throw new UsuarioNoEncontrado();
-        if (tipo == null) throw new TipoIncidenciaNoencontrado();
-
         Usuario usuSistema = usuarios.get(usuario.getLogin());
         if (usuSistema == null) {
             throw new UsuarioNoEncontrado();
         }
 
-        if (!usuario.getLogin().equals("admin")) {
+        if (!usuSistema.getLogin().equals("admin")) {
             throw new CredencialesInvalidas();
         }
 
@@ -242,6 +239,22 @@ public class ServicioIncidencias {
 
         tiposIncidencia.remove(tipo.getId());
     }
+
+    public void cambiarClave(Usuario usuario, String nuevaClave) {
+        if (nuevaClave == null || nuevaClave.isEmpty()) return;
+
+        Usuario usuSistema = usuarios.get(usuario.getLogin());
+        if (usuSistema == null) {
+            throw new UsuarioNoEncontrado();
+        }
+
+        if (!usuSistema.getLogin().equals("admin")) {
+            throw new CredencialesInvalidas();
+        }
+
+        usuSistema.setClave(nuevaClave);
+    }
+
 
 
 }
