@@ -44,6 +44,11 @@ public class ServicioIncidencias {
         if (usuarios.containsKey(usuario.getLogin())) {
             throw new UsuarioYaExiste();
         }
+
+        if(usuario.getLogin().equals("admin")){
+            throw new UsuarioNoAdmin();
+        }
+
         usuarios.put(usuario.getLogin(), usuario);
     }
 

@@ -1,3 +1,9 @@
+import es.ujaen.dae.incidenciasUrbanas.entidades.TipoIncidencia;
+import es.ujaen.dae.incidenciasUrbanas.entidades.Usuario;
+import org.junit.jupiter.api.Test;
+
+import java.time.LocalDate;
+
 public package es.ujaen.dae.incidenciasUrbanas.servicios;
 
 import es.ujaen.dae.incidenciasUrbanas.excepciones.TipoIncidenciaInvalido;
