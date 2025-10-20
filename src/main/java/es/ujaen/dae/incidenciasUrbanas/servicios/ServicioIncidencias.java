@@ -145,6 +145,28 @@ public class ServicioIncidencias {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * @brief Añade un nuevo tipo de incidencia al sistema.
+     * Crea una nueva entrada en el mapa de tipos de incidencia si no existe otro tipo con el mismo nombre.
+     *
+     * @param tipo Objeto TipoIncidencia que se desea registrar.
+     * @throws IllegalArgumentException Si el tipo es nulo o ya existe un tipo con el mismo nombre.
+     */
+    public void anadirTipoIncidencia(TipoIncidencia tipo) {
+        if (tipo == null) {
+            throw new TipoIncidenciaInvalido();
+        }
+
+        boolean existe = tiposIncidencia.values().stream()
+                .anyMatch(t -> t.getNombre().equalsIgnoreCase(tipo.getNombre()));
+
+        if (existe) {
+            throw new TipoIncidenciaEnUso();
+        }
+
+        tiposIncidencia.put(tipo.getId(), tipo);
+    }
+
 
     /**
      * @brief Elimina una incidencia del sistema.
