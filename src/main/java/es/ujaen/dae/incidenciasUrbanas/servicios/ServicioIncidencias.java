@@ -107,13 +107,13 @@ public class ServicioIncidencias {
      * @throws UsuarioNoEncontrado Si el usuario con el login indicado no existe.
      * @throws TipoIncidenciaNoencontrado Si el tipo de incidencia indicado no existe.
      */
-    public Incidencia registrarIncidencia(String login, UUID idTipoIncidencia, String descripcion, String localizacion, String gps) { // TODO OBJETOS completos
+    public Incidencia registrarIncidencia(String login, TipoIncidencia tipoInci, String descripcion, String localizacion, String gps) { // TODO OBJETOS completos
         Usuario usuario = usuarios.get(login);
         if (usuario == null) {
             throw new UsuarioNoEncontrado();
         }
 
-        TipoIncidencia tipo = tiposIncidencia.get(idTipoIncidencia);
+        TipoIncidencia tipo = tiposIncidencia.get(tipoInci.getId());
         if (tipo == null) {
             throw new TipoIncidenciaNoencontrado();
         }
@@ -139,13 +139,13 @@ public class ServicioIncidencias {
     /**
      * @brief Busca incidencias en el sistema según tipo y/o estado.
      * Permite filtrar las incidencias por tipo o por estado. Si alguno de los parámetros es null, se ignora ese filtro.
-     * @param idTipoIncidencia Identificador del tipo de incidencia.
+     * @param tipoIncidencia Identificador del tipo de incidencia.
      * @param estado Estado de la incidencia.
      * @return Lista de incidencias que cumplen los criterios de búsqueda.
      */
-    public List<Incidencia> buscarIncidencias(UUID idTipoIncidencia, Estado estado) { //TODO Pasar objetos no UUID
+    public List<Incidencia> buscarIncidencias(TipoIncidencia tipoIncidencia, Estado estado) {
         return incidencias.values().stream()
-                .filter(i -> (idTipoIncidencia == null || i.getTipo().getId().equals(idTipoIncidencia)) &&
+                .filter(i -> (tipoIncidencia == null || i.getTipo().getId().equals(tipoIncidencia.getId())) &&
                         (estado == null || i.getEstado() == estado))
                 .collect(Collectors.toList());
     }
