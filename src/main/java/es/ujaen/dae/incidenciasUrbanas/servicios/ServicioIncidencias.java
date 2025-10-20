@@ -102,7 +102,7 @@ public class ServicioIncidencias {
      * @throws UsuarioNoEncontrado Si el usuario con el login indicado no existe.
      * @throws TipoIncidenciaNoencontrado Si el tipo de incidencia indicado no existe.
      */
-    public Incidencia registrarIncidencia(String login, UUID idTipoIncidencia, String descripcion, String localizacion, String gps) {
+    public Incidencia registrarIncidencia(String login, UUID idTipoIncidencia, String descripcion, String localizacion, String gps) { // TODO OBJETOS completos
         Usuario usuario = usuarios.get(login);
         if (usuario == null) {
             throw new UsuarioNoEncontrado();
@@ -138,7 +138,7 @@ public class ServicioIncidencias {
      * @param estado Estado de la incidencia.
      * @return Lista de incidencias que cumplen los criterios de búsqueda.
      */
-    public List<Incidencia> buscarIncidencias(UUID idTipoIncidencia, Estado estado) {
+    public List<Incidencia> buscarIncidencias(UUID idTipoIncidencia, Estado estado) { //TODO Pasar objetos no UUID
         return incidencias.values().stream()
                 .filter(i -> (idTipoIncidencia == null || i.getTipo().getId().equals(idTipoIncidencia)) &&
                         (estado == null || i.getEstado() == estado))
@@ -150,26 +150,29 @@ public class ServicioIncidencias {
      * @brief Elimina una incidencia del sistema.
      * Permite borrar una incidencia si el usuario es su propietario y la incidencia está en estado PENDIENTE, o si el usuario tiene el rol de administrador.
      *
-     * @param login Login del usuario que solicita el borrado.
-     * @param idIncidencia Identificador de la incidencia a eliminar.
+     * @param usuario Login del usuario que solicita el borrado.
+     * @param incidencia Identificador de la incidencia a eliminar.
      *
      * @throws IncidenciaNoEncontrada Si la incidencia indicada no existe.
      * @throws UsuarioNoEncontrado Si el usuario no existe.
      * @throws BorrarIncidenciaNoPendiente Si el usuario intenta borrar una incidencia no pendiente.
      * @throws CredencialesInvalidas Si el usuario no tiene permiso para eliminar la incidencia.
      */
-    public void borrarIncidencia(String login, UUID idIncidencia) {
-        Incidencia inc = incidencias.get(idIncidencia);
-        if (inc == null) throw new IncidenciaNoEncontrada();
-
-        Usuario usuario = usuarios.get(login);
+    public void borrarIncidencia(Usuario usuario, Incidencia incidencia) {
         if (usuario == null) throw new UsuarioNoEncontrado();
+        if (incidencia == null) throw new IncidenciaNoEncontrada();
+
+        Incidencia incSistema = incidencias.get(incidencia.getId());
+        if (incSistema == null) throw new IncidenciaNoEncontrada();
+
+        Usuario usuSistema = usuarios.get(usuario.getLogin());
+        if (usuSistema == null) throw new UsuarioNoEncontrado();
 
         boolean esAdmin = usuario.getLogin().equals("admin");
 
-        if (esAdmin || inc.getUsuario().getLogin().equals(login)) {
-            if (esAdmin || inc.getEstado() == Estado.PENDIENTE) {
-                incidencias.remove(idIncidencia);
+        if (esAdmin || incSistema.getUsuario().getLogin().equals(usuario.getLogin())) {
+            if (esAdmin || incSistema.getEstado() == Estado.PENDIENTE) {
+                incidencias.remove(incSistema.getId());
             } else {
                 throw new BorrarIncidenciaNoPendiente();
             }
@@ -177,5 +180,41 @@ public class ServicioIncidencias {
             throw new CredencialesInvalidas();
         }
     }
+
+    public void cambiarTipoIncidencia(TipoIncidencia nuevoTipo, Incidencia incidencia) {
+        if (nuevoTipo == null) {
+            throw new TipoIncidenciaInvalido();
+        }
+        incidencia.setTipo(nuevoTipo);
+    }
+
+    public void borrarTipoIncidencia(Usuario usuario, TipoIncidencia tipo) {
+        if (usuario == null) throw new UsuarioNoEncontrado();
+        if (tipo == null) throw new TipoIncidenciaNoencontrado();
+
+        Usuario usuSistema = usuarios.get(usuario.getLogin());
+        if (usuSistema == null) {
+            throw new UsuarioNoEncontrado();
+        }
+
+        if (!usuario.getLogin().equals("admin")) {
+            throw new CredencialesInvalidas();
+        }
+
+        TipoIncidencia tipoSistema = tiposIncidencia.get(tipo.getId());
+        if (tipoSistema == null) {
+            throw new TipoIncidenciaNoencontrado();
+        }
+
+        boolean enUso = incidencias.values().stream()
+                .anyMatch(i -> i.getTipo().getId().equals(tipo.getId()));
+
+        if (enUso) {
+            throw new TipoIncidenciaEnUso();
+        }
+
+        tiposIncidencia.remove(tipo.getId());
+    }
+
 
 }

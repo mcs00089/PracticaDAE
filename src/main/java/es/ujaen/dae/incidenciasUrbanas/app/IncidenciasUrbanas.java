@@ -11,7 +11,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  *
  */
 @SpringBootApplication(scanBasePackages="es.ujaen.dae.incidenciasUrbanas.servicios")
-@EnableScheduling
 public class IncidenciasUrbanas {
     public static void main(String[] args) {
         SpringApplication.run(IncidenciasUrbanas.class);

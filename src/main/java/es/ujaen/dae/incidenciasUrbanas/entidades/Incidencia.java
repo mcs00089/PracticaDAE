@@ -16,6 +16,8 @@ public class Incidencia {
 
     // Relaciones
     private Usuario usuario; // quien la registra
+
+
     private TipoIncidencia tipo; // tipo de incidencia
 
     // Constructor
@@ -75,14 +77,24 @@ public class Incidencia {
         return tipo;
     }
 
-    // Método según UML
-    public void actualizarEstado(Estado nuevoEstado) {
-        this.estado = nuevoEstado;
+    public void setTipo(TipoIncidencia tipo) {
+        this.tipo = tipo;
     }
 
-    //Cambio de estado?
-    public void cambiarEstado(Estado nuevoEstado, Usuario usuario) {
-        this.estado = nuevoEstado;
+    public void setId(UUID id) {
+        this.id = id;
+    }
+
+    public void setFecha(LocalDateTime fecha) {
+        this.fecha = fecha;
+    }
+
+    public void setEstado(Estado estado) {
+        this.estado = estado;
+    }
+
+    public void setUsuario(Usuario usuario) {
+        this.usuario = usuario;
     }
 
     //Cambio de tipo de incidencia
@@ -93,8 +105,6 @@ public class Incidencia {
         this.tipo = nuevoTipo;
     }
 
-
-    // Opcional: para depuración o mostrar en pantalla
     @Override
     public String toString() {
         return "Incidencia{" +

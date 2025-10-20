@@ -119,13 +119,6 @@ public class Usuario {
         this.clave = clave;
     }
 
-    //Método según UML
-    public void cambiarClave(String claveActual, String nuevaClave) {
-        if (!this.clave.equals(claveActual)) {
-            throw new PasswordIncorrecta();
-        }
-        this.clave = nuevaClave;
-    }
 
 
 }
