@@ -256,5 +256,24 @@ public class ServicioIncidencias {
     }
 
 
+    public void cambiarEstadoIncidencia(Usuario usuario, Incidencia incidencia, Estado nuevoEstado) {
+        if (nuevoEstado == null) return;
+
+        Usuario usuSistema = usuarios.get(usuario.getLogin());
+        if (usuSistema == null) {
+            throw new UsuarioNoEncontrado();
+        }
+
+        if (!usuSistema.getLogin().equals("admin")) {
+            throw new CredencialesInvalidas();
+        }
+
+        Incidencia incSistema = incidencias.get(incidencia.getId());
+        if (incSistema == null) {
+            throw new IncidenciaNoEncontrada();
+        }
+
+        incSistema.setEstado(nuevoEstado);
+    }
 
 }
