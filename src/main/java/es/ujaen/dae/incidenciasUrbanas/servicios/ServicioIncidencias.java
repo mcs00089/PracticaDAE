@@ -157,7 +157,16 @@ public class ServicioIncidencias {
      * @param tipo Objeto TipoIncidencia que se desea registrar.
      * @throws IllegalArgumentException Si el tipo es nulo o ya existe un tipo con el mismo nombre.
      */
-    public void anadirTipoIncidencia(TipoIncidencia tipo) {
+    public void anadirTipoIncidencia(Usuario usuario, TipoIncidencia tipo) {
+        Usuario usuSistema = usuarios.get(usuario.getLogin());0
+        if (usuSistema == null) {
+            throw new UsuarioNoEncontrado();
+        }
+
+        if (!usuSistema.getLogin().equals("admin")) {
+            throw new CredencialesInvalidas();
+        }
+
         if (tipo == null) {
             throw new TipoIncidenciaInvalido();
         }
