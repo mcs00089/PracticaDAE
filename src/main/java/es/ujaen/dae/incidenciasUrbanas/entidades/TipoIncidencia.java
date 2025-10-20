@@ -16,7 +16,6 @@ public class TipoIncidencia {
         this.descripcion = descripcion;
     }
 
-    // Getters y Setters
     public UUID getId() {
         return id;
     }

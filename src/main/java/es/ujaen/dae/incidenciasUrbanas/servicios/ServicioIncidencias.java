@@ -33,6 +33,10 @@ public class ServicioIncidencias {
             "admin123"
     );
 
+    public ServicioIncidencias() {
+        usuarios.put(admin.getLogin(), admin);
+    }
+
 
     /**
      * @brief Registra un nuevo usuario en el sistema.
@@ -41,12 +45,12 @@ public class ServicioIncidencias {
      * @throws UsuarioYaExiste Si ya existe un usuario con el mismo login.
      */
     public void registrarUsuario(Usuario usuario){
-        if (usuarios.containsKey(usuario.getLogin())) {
-            throw new UsuarioYaExiste();
-        }
-
         if(usuario.getLogin().equals("admin")){
             throw new UsuarioNoAdmin();
+        }
+
+        if (usuarios.containsKey(usuario.getLogin())) {
+            throw new UsuarioYaExiste();
         }
 
         usuarios.put(usuario.getLogin(), usuario);
@@ -98,8 +102,8 @@ public class ServicioIncidencias {
      * @brief Registra una nueva incidencia de un usuario.
      * Crea una nueva incidencia asociada al usuario y al tipo de incidencia indicado,
      * y la añade al sistema.
-     * @param login Login del usuario que hace la incidencia.
-     * @param idTipoIncidencia Identificador único del tipo de incidencia.
+     * @param usuario usuario que hace la incidencia.
+     * @param tipoInci tipo incidencia.
      * @param descripcion Descripción detallada del problema.
      * @param localizacion Dirección o zona donde ocurre la incidencia.
      * @param gps Coordenadas GPS del lugar de la incidencia.
@@ -107,9 +111,8 @@ public class ServicioIncidencias {
      * @throws UsuarioNoEncontrado Si el usuario con el login indicado no existe.
      * @throws TipoIncidenciaNoencontrado Si el tipo de incidencia indicado no existe.
      */
-    public Incidencia registrarIncidencia(String login, TipoIncidencia tipoInci, String descripcion, String localizacion, String gps) { // TODO OBJETOS completos
-        Usuario usuario = usuarios.get(login);
-        if (usuario == null) {
+    public Incidencia registrarIncidencia(Usuario usuario, TipoIncidencia tipoInci, String descripcion, String localizacion, String gps) {
+        if (usuario == null || !usuarios.containsKey(usuario.getLogin())) {
             throw new UsuarioNoEncontrado();
         }
 
@@ -120,6 +123,7 @@ public class ServicioIncidencias {
 
         Incidencia nueva = new Incidencia(usuario, tipo, descripcion, localizacion, gps);
         incidencias.put(nueva.getId(), nueva);
+
         return nueva;
     }
 
@@ -127,12 +131,16 @@ public class ServicioIncidencias {
     /**
      * @brief Lista todas las incidencias registradas por un usuario.
      * Filtra las incidencias en el sistema y devuelve solo las que pertenecen al usuario con el login indicado.
-     * @param login Login del usuario cuyas incidencias se desean consultar.
+     * @param usuario usuario del que se quiere listar sus incidencias.
      * @return Lista de incidencias asociadas al usuario.
      */
-    public List<Incidencia> listarIncidenciasDeUsuario(String login) {
+    public List<Incidencia> listarIncidenciasDeUsuario(Usuario usuario) {
+        if (usuario == null || !usuarios.containsKey(usuario.getLogin())) {
+            throw new UsuarioNoEncontrado();
+        }
+
         return incidencias.values().stream()
-                .filter(i -> i.getUsuario().getLogin().equals(login))
+                .filter(i -> i.getUsuario().getLogin().equals(usuario.getLogin()))
                 .collect(Collectors.toList());
     }
 
@@ -215,13 +223,6 @@ public class ServicioIncidencias {
         } else {
             throw new CredencialesInvalidas();
         }
-    }
-
-    public void cambiarTipoIncidencia(TipoIncidencia nuevoTipo, Incidencia incidencia) {
-        if (nuevoTipo == null) {
-            throw new TipoIncidenciaInvalido();
-        }
-        incidencia.setTipo(nuevoTipo);
     }
 
     public void borrarTipoIncidencia(Usuario usuario, TipoIncidencia tipo) {

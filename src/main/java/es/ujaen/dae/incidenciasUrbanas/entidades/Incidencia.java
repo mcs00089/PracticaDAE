@@ -14,13 +14,11 @@ public class Incidencia {
     private String localizacionGPS; // opcional
     private Estado estado;
 
-    // Relaciones
     private Usuario usuario; // quien la registra
 
 
     private TipoIncidencia tipo; // tipo de incidencia
 
-    // Constructor
     public Incidencia(Usuario usuario, TipoIncidencia tipo, String descripcion, String localizacion, String localizacionGPS) {
         this.id = UUID.randomUUID();
         this.fecha = LocalDateTime.now();
@@ -32,7 +30,6 @@ public class Incidencia {
         this.estado = Estado.PENDIENTE; // estado inicial por defecto
     }
 
-    // Getters y Setters
     public UUID getId() {
         return id;
     }
