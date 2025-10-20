@@ -158,7 +158,7 @@ public class ServicioIncidencias {
      * @throws IllegalArgumentException Si el tipo es nulo o ya existe un tipo con el mismo nombre.
      */
     public void anadirTipoIncidencia(Usuario usuario, TipoIncidencia tipo) {
-        Usuario usuSistema = usuarios.get(usuario.getLogin());0
+        Usuario usuSistema = usuarios.get(usuario.getLogin());
         if (usuSistema == null) {
             throw new UsuarioNoEncontrado();
         }
