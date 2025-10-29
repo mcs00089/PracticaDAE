@@ -1,0 +1,5 @@
+meses-historico: 3
+
+spring.datasource.url: jdbc:h2:mem:incidencias;MODE=MYSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
+
+spring.jpa.properties.jakarta.persistence.schema-generation.database.action: drop-and-create

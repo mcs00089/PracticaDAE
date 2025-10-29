@@ -1,13 +1,15 @@
 package es.ujaen.dae.incidenciasUrbanas.entidades;
 
-import es.ujaen.dae.incidenciasUrbanas.excepciones.PasswordIncorrecta;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 
 import java.time.LocalDate;
 
-
+@Entity
 public class Usuario {
     Integer id;
 
@@ -17,7 +19,7 @@ public class Usuario {
     @NotBlank
     String apellidos;
 
-    @NotBlank
+    @NotNull
     LocalDate fechaNacimiento;
 
     @NotBlank
@@ -26,6 +28,7 @@ public class Usuario {
     @Pattern(regexp = "^(\\+34|0034|34)?[6789]\\d{8}$", message = "No es un número de teléfono válido")
     String telefono;
 
+    @Id
     @Email
     String email;
 
@@ -45,6 +48,10 @@ public class Usuario {
         this.email = email;
         this.login = login;
         this.clave = clave;
+    }
+
+    public Usuario() {
+
     }
 
     public int getId() {
