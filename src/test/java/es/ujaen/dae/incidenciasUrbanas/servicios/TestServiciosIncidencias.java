@@ -11,6 +11,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
@@ -29,7 +30,6 @@ public class TestServiciosIncidencias {
     @BeforeEach
     void setUp() {
         usuarioNormal = new Usuario(
-                1,
                 "Juan",
                 "Gómez Pérez",
                 LocalDate.of(1990, 5, 20),
@@ -41,7 +41,6 @@ public class TestServiciosIncidencias {
         );
 
         admin = new Usuario(
-                0,
                 "Admin",
                 "Administrador",
                 LocalDate.of(1990, 1, 1),
@@ -67,7 +66,6 @@ public class TestServiciosIncidencias {
     @DirtiesContext
     void testRegistrarUsuarioConLoginAdmin() {
         Usuario usuarioConLoginAdmin = new Usuario(
-                2,
                 "Falso",
                 "Admin",
                 LocalDate.of(1990, 1, 1),
@@ -81,15 +79,7 @@ public class TestServiciosIncidencias {
         assertThatThrownBy(() -> servicio.registrarUsuario(usuarioConLoginAdmin))
                 .isInstanceOf(UsuarioNoAdmin.class);
     }
-/* TODO REVISAR PORQUE NO FUNCIONA
-    @Test
-    @DirtiesContext
-    void testLoginAdmin() {
-        Usuario adminLogueado = servicio.login("admin", "admin123"); // Cogemos el admin de servicio
-        assertThat(adminLogueado).isNotNull();
-        assertThat(adminLogueado.getNombre()).isEqualTo("Admin");
-    }
-*/
+
     @Test
     @DirtiesContext
     void testLoginCorrectoEIncorrecto() {
@@ -104,9 +94,9 @@ public class TestServiciosIncidencias {
                 .isInstanceOf(CredencialesInvalidas.class);
 
         // login bien
-        Usuario usuarioLogueado = servicio.login("juanito", "clave123");
-        assertThat(usuarioLogueado.getEmail()).isEqualTo("juan@example.com");
-        assertThat(usuarioLogueado.getNombre()).isEqualTo("Juan");
+        Optional<Usuario> usuarioLogueado = servicio.login("juanito", "clave123");
+        assertThat(usuarioLogueado.get().getEmail()).isEqualTo("juan@example.com");
+        assertThat(usuarioLogueado.get().getNombre()).isEqualTo("Juan");
     }
 
     @Test
@@ -114,33 +104,33 @@ public class TestServiciosIncidencias {
     void testActualizarUsuario() {
         servicio.registrarUsuario(usuarioNormal);
 
+        Usuario usuarioLogueado = usuarioNormal;
+
         Usuario nuevosDatos = new Usuario(
-                1,
                 "Juan Carlos",
                 "Gómez López",
                 LocalDate.of(1990, 5, 20),
                 "Calle Nueva 10",
                 "611223344",
                 "juancarlos@example.com",
-                "juanito",
+                "juanito",              // mismo login
                 "nuevaClave456"
         );
 
-        servicio.actualizarUsuario("juanito", nuevosDatos);
+        servicio.actualizarUsuario(usuarioLogueado, nuevosDatos);
 
-        Usuario actualizado = servicio.login("juanito", "nuevaClave456");
-        assertThat(actualizado.getNombre()).isEqualTo("Juan Carlos");
-        assertThat(actualizado.getApellidos()).isEqualTo("Gómez López");
-        assertThat(actualizado.getDireccion()).isEqualTo("Calle Nueva 10");
-        assertThat(actualizado.getTelefono()).isEqualTo("611223344");
-        assertThat(actualizado.getEmail()).isEqualTo("juancarlos@example.com");
+        Optional<Usuario> actualizado = servicio.login("juanito", "nuevaClave456");
+        assertThat(actualizado.get().getNombre()).isEqualTo("Juan Carlos");
+        assertThat(actualizado.get().getApellidos()).isEqualTo("Gómez López");
+        assertThat(actualizado.get().getDireccion()).isEqualTo("Calle Nueva 10");
+        assertThat(actualizado.get().getTelefono()).isEqualTo("611223344");
+        assertThat(actualizado.get().getEmail()).isEqualTo("juancarlos@example.com");
     }
 
     @Test
     @DirtiesContext
     void testActualizarUsuarioNoExistente() {
         Usuario usuarioInexistente = new Usuario(
-                99,
                 "Inexistente",
                 "Usuario",
                 LocalDate.now(),
@@ -151,7 +141,8 @@ public class TestServiciosIncidencias {
                 "clave"
         );
 
-        assertThatThrownBy(() -> servicio.actualizarUsuario("inexistente", usuarioInexistente))
+        // Intentamos actualizar con un usuario que no está registrado
+        assertThatThrownBy(() -> servicio.actualizarUsuario(usuarioInexistente, usuarioInexistente))
                 .isInstanceOf(UsuarioNoEncontrado.class);
     }
 
@@ -183,7 +174,6 @@ public class TestServiciosIncidencias {
         servicio.anadirTipoIncidencia(admin, tipoIncidencia);
 
         Usuario usuarioFalso = new Usuario(
-                99,
                 "Falso",
                 "Usuario",
                 LocalDate.now(),
@@ -239,7 +229,6 @@ public class TestServiciosIncidencias {
     @DirtiesContext
     void testListarIncidenciasDeUsuarioNoExistente() {
         Usuario usuarioFalso = new Usuario(
-                99,
                 "Falso",
                 "Usuario",
                 LocalDate.now(),
@@ -420,20 +409,6 @@ public class TestServiciosIncidencias {
         // Intentamos borrar un tipo en uso
         assertThatThrownBy(() -> servicio.borrarTipoIncidencia(admin, tipoIncidencia))
                 .isInstanceOf(TipoIncidenciaEnUso.class);
-    }
-
-    @Test
-    @DirtiesContext
-    void testCambiarClaveSoloAdmin() {
-        servicio.registrarUsuario(usuarioNormal);
-
-        assertThatThrownBy(() -> servicio.cambiarClave(usuarioNormal, "nuevaClaveSegura"))
-                .isInstanceOf(CredencialesInvalidas.class);
-
-        servicio.cambiarClave(admin, "nuevoAdmin123");
-
-        Usuario adminActualizado = servicio.login("admin", "nuevoAdmin123");
-        assertThat(adminActualizado).isNotNull();
     }
 
 

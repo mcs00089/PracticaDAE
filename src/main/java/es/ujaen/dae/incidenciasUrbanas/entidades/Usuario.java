@@ -11,8 +11,6 @@ import java.time.LocalDate;
 
 @Entity
 public class Usuario {
-    Integer id;
-
     @NotBlank
     String nombre;
 
@@ -38,8 +36,7 @@ public class Usuario {
     @NotBlank
     String clave;
 
-    public Usuario(int id, String nombre, String apellidos, LocalDate fechaNacimiento, String direccion, String telefono, String email, String login, String clave) {
-        this.id = id;
+    public Usuario(String nombre, String apellidos, LocalDate fechaNacimiento, String direccion, String telefono, String email, String login, String clave) {
         this.nombre = nombre;
         this.apellidos = apellidos;
         this.fechaNacimiento = fechaNacimiento;
@@ -52,14 +49,6 @@ public class Usuario {
 
     public Usuario() {
 
-    }
-
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
     }
 
     public String getNombre() {
