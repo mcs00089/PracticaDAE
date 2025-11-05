@@ -5,27 +5,32 @@ import es.ujaen.dae.incidenciasUrbanas.entidades.Incidencia;
 import es.ujaen.dae.incidenciasUrbanas.entidades.TipoIncidencia;
 import es.ujaen.dae.incidenciasUrbanas.entidades.Usuario;
 import es.ujaen.dae.incidenciasUrbanas.excepciones.*;
+import es.ujaen.dae.incidenciasUrbanas.repositorios.RepositorioUsuarios;
+import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
 import java.time.LocalDate;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.UUID;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
 @Service
 @Validated
 public class ServicioIncidencias {
+
+    @Autowired
+    private RepositorioUsuarios repositorioUsuario;
+
     private final Map<String, Usuario> usuarios = new TreeMap<>();
     private final Map<UUID, Incidencia> incidencias = new HashMap<>();
     private final Map<UUID, TipoIncidencia> tiposIncidencia = new HashMap<>();
 
 
-    private static final Usuario admin = new Usuario(0,"Admin", "Administrador", LocalDate.of(1990, 1, 1),
+    private static final Usuario admin = new Usuario("Admin", "Administrador", LocalDate.of(1990, 1, 1),
             "Ayuntamiento, Plaza Mayor",
             "657232313",
             "admin@ayuntamiento.es",
@@ -40,20 +45,21 @@ public class ServicioIncidencias {
 
     /**
      * @brief Registra un nuevo usuario en el sistema.
-     * Añade el usuario al mapa de usuarios registrados
+     * Añade el usuario a la base de datos
      * @param usuario Objeto de tipo Usuario con los datos del nuevo usuario a registrar.
      * @throws UsuarioYaExiste Si ya existe un usuario con el mismo login.
      */
-    public void registrarUsuario(Usuario usuario){
-        if(usuario.getLogin().equals("admin")){
+    @Transactional
+    public void registrarUsuario(@Valid Usuario usuario) {
+        if (usuario.getLogin().equals("admin")) {
             throw new UsuarioNoAdmin();
         }
 
-        if (usuarios.containsKey(usuario.getLogin())) {
+        if (repositorioUsuario.existeLogin(usuario.getLogin())) {
             throw new UsuarioYaExiste();
         }
 
-        usuarios.put(usuario.getLogin(), usuario);
+        repositorioUsuario.guardar(usuario);
     }
 
 
@@ -65,27 +71,32 @@ public class ServicioIncidencias {
      * @return El objeto Usuario autenticado.
      * @throws CredencialesInvalidas Si el login no existe o la contraseña no coincide.
      */
-    public Usuario login(String login, String clave){
-        Usuario usuario = usuarios.get(login);
-        if (usuario == null || !usuario.getClave().equals(clave)) {
-            throw new CredencialesInvalidas();
+    public Optional<Usuario> login(@NotBlank String login,@NotBlank String clave) {
+        Optional<Usuario> usuarioOpt = repositorioUsuario.buscarPorLogin(login);
+
+        if (usuarioOpt.isEmpty()) {
+            return Optional.empty();
         }
-        return usuario;
+
+        Usuario usuario = usuarioOpt.get();
+        if (!usuario.getClave().equals(clave)) {
+            return Optional.empty();
+        }
+
+        return Optional.of(usuario);
     }
 
 
     /**
      * @brief Actualiza los datos de un usuario existente.
      * Reemplaza los datos del usuario con los nuevos valores.
-     * @param login Login del usuario que se desea actualizar.
+     * @param usuarioLogueado usuario logueado que se desea actualizar.
      * @param nuevosDatos Usuario con los nuevos valores de los campos a modificar.
      * @throws UsuarioNoEncontrado Si el usuario con el login especificado no existe.
      */
-    public void actualizarUsuario(String login, Usuario nuevosDatos) {
-        Usuario usuActualizar = usuarios.get(login);
-        if (usuActualizar == null) {
-            throw new UsuarioNoEncontrado();
-        }
+    public void actualizarUsuario(@Valid Usuario usuarioLogueado,@Valid Usuario nuevosDatos) {
+        Usuario usuActualizar = repositorioUsuario.buscarPorLogin(usuarioLogueado.getLogin())
+                .orElseThrow(UsuarioNoEncontrado::new);
 
         usuActualizar.setNombre(nuevosDatos.getNombre());
         usuActualizar.setApellidos(nuevosDatos.getApellidos());
@@ -94,6 +105,8 @@ public class ServicioIncidencias {
         usuActualizar.setTelefono(nuevosDatos.getTelefono());
         usuActualizar.setFechaNacimiento(nuevosDatos.getFechaNacimiento());
         usuActualizar.setClave(nuevosDatos.getClave());
+
+        repositorioUsuario.actualizar(usuActualizar);
 
     }
 
@@ -248,21 +261,6 @@ public class ServicioIncidencias {
         }
 
         tiposIncidencia.remove(tipo.getId());
-    }
-
-    public void cambiarClave(Usuario usuario, String nuevaClave) {
-        if (nuevaClave == null || nuevaClave.isEmpty()) return;
-
-        Usuario usuSistema = usuarios.get(usuario.getLogin());
-        if (usuSistema == null) {
-            throw new UsuarioNoEncontrado();
-        }
-
-        if (!usuSistema.getLogin().equals("admin")) {
-            throw new CredencialesInvalidas();
-        }
-
-        usuSistema.setClave(nuevaClave);
     }
 
 

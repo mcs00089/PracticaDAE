@@ -1,22 +1,39 @@
 package es.ujaen.dae.incidenciasUrbanas.entidades;
 import es.ujaen.dae.incidenciasUrbanas.excepciones.TipoIncidenciaInvalido;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import org.hibernate.annotations.UuidGenerator;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+@Entity
 public class Incidencia {
 
     // Atributos
+    @Id
     private UUID id;
+
+    @NotNull
     private LocalDateTime fecha;
+
+    @NotBlank
     private String descripcion;
+
+    @NotBlank
     private String localizacion;
-    private String localizacionGPS; // opcional
+
+    @NotBlank
+    private String localizacionGPS;
+
+    @NotBlank
     private Estado estado;
 
+    @Transient
     private Usuario usuario; // quien la registra
 
-
+    @Transient
     private TipoIncidencia tipo; // tipo de incidencia
 
     public Incidencia(Usuario usuario, TipoIncidencia tipo, String descripcion, String localizacion, String localizacionGPS) {
@@ -28,6 +45,10 @@ public class Incidencia {
         this.localizacion = localizacion;
         this.localizacionGPS = localizacionGPS;
         this.estado = Estado.PENDIENTE; // estado inicial por defecto
+    }
+
+    public Incidencia() {
+
     }
 
     public UUID getId() {

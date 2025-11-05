@@ -1,12 +1,25 @@
 package es.ujaen.dae.incidenciasUrbanas.entidades;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.validation.constraints.NotBlank;
+import org.hibernate.annotations.UuidGenerator;
+
 import java.util.UUID;
 import java.util.List;
 
+@Entity
 public class TipoIncidencia {
 
     // Atributos
+    @Id
     private UUID id;
+
+    @NotBlank
     private String nombre;
+
+    @NotBlank
     private String descripcion;
 
     // Constructor
@@ -14,6 +27,10 @@ public class TipoIncidencia {
         this.id = UUID.randomUUID();
         this.nombre = nombre;
         this.descripcion = descripcion;
+    }
+
+    public TipoIncidencia() {
+
     }
 
     public UUID getId() {
