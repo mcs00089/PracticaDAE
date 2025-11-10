@@ -5,6 +5,7 @@ import es.ujaen.dae.incidenciasUrbanas.entidades.Incidencia;
 import es.ujaen.dae.incidenciasUrbanas.entidades.TipoIncidencia;
 import es.ujaen.dae.incidenciasUrbanas.entidades.Usuario;
 import es.ujaen.dae.incidenciasUrbanas.excepciones.*;
+import es.ujaen.dae.incidenciasUrbanas.repositorios.RepositorioTipoIncidencia;
 import es.ujaen.dae.incidenciasUrbanas.repositorios.RepositorioUsuarios;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
@@ -25,9 +26,11 @@ public class ServicioIncidencias {
     @Autowired
     private RepositorioUsuarios repositorioUsuario;
 
+    @Autowired
+    private RepositorioTipoIncidencia repositorioTipos;
+
     private final Map<String, Usuario> usuarios = new TreeMap<>();
     private final Map<UUID, Incidencia> incidencias = new HashMap<>();
-    private final Map<UUID, TipoIncidencia> tiposIncidencia = new HashMap<>();
 
 
     private static final Usuario admin = new Usuario("Admin", "Administrador", LocalDate.of(1990, 1, 1),
@@ -125,16 +128,18 @@ public class ServicioIncidencias {
      * @throws TipoIncidenciaNoencontrado Si el tipo de incidencia indicado no existe.
      */
     public Incidencia registrarIncidencia(Usuario usuario, TipoIncidencia tipoInci, String descripcion, String localizacion, String gps) {
-        if (usuario == null || !usuarios.containsKey(usuario.getLogin())) {
+        // VALIDACIÓN DE USUARIO (usando repositorio)
+        if (usuario == null || !repositorioUsuario.existeLogin(usuario.getLogin())) {
             throw new UsuarioNoEncontrado();
         }
 
-        TipoIncidencia tipo = tiposIncidencia.get(tipoInci.getId());
-        if (tipo == null) {
-            throw new TipoIncidenciaNoencontrado();
-        }
+        // VALIDACIÓN DE TIPOINCIDENCIA (usando repositorio)
+        TipoIncidencia tipo = repositorioTipos.buscarPorId(tipoInci.getId())
+                .orElseThrow(TipoIncidenciaNoencontrado::new);
 
         Incidencia nueva = new Incidencia(usuario, tipo, descripcion, localizacion, gps);
+
+        // ESTO SE QUEDA ASÍ HASTA QUE CARLOS HAGA EL REPOSITORIOINCIDENCIAS
         incidencias.put(nueva.getId(), nueva);
 
         return nueva;
@@ -179,12 +184,8 @@ public class ServicioIncidencias {
      * @throws IllegalArgumentException Si el tipo es nulo o ya existe un tipo con el mismo nombre.
      */
     public void anadirTipoIncidencia(Usuario usuario, TipoIncidencia tipo) {
-        Usuario usuSistema = usuarios.get(usuario.getLogin());
-        if (usuSistema == null) {
-            throw new UsuarioNoEncontrado();
-        }
-
-        if (!usuSistema.getLogin().equals("admin")) {
+        // VALIDACIÓN DE USUARIO (simplificada, ya no usa mapa)
+        if (usuario == null || !usuario.getLogin().equals("admin")) {
             throw new CredencialesInvalidas();
         }
 
@@ -192,14 +193,15 @@ public class ServicioIncidencias {
             throw new TipoIncidenciaInvalido();
         }
 
-        boolean existe = tiposIncidencia.values().stream()
-                .anyMatch(t -> t.getNombre().equalsIgnoreCase(tipo.getNombre()));
+        // VALIDACIÓN DE TIPOINCIDENCIA (usando repositorio)
+        Optional<TipoIncidencia> existente = repositorioTipos.buscarPorNombre(tipo.getNombre());
 
-        if (existe) {
-            throw new TipoIncidenciaEnUso();
+        if (existente.isPresent()) {
+            throw new TipoIncidenciaEnUso(); // O una nueva Excepción "TipoIncidenciaYaExiste"
         }
 
-        tiposIncidencia.put(tipo.getId(), tipo);
+        // GUARDAR EN BASE DE DATOS (usando repositorio)
+        repositorioTipos.guardar(tipo);
     }
 
 
@@ -239,20 +241,16 @@ public class ServicioIncidencias {
     }
 
     public void borrarTipoIncidencia(Usuario usuario, TipoIncidencia tipo) {
-        Usuario usuSistema = usuarios.get(usuario.getLogin());
-        if (usuSistema == null) {
-            throw new UsuarioNoEncontrado();
-        }
-
-        if (!usuSistema.getLogin().equals("admin")) {
+        // VALIDACIÓN DE USUARIO (simplificada, ya no usa mapa)
+        if (usuario == null || !usuario.getLogin().equals("admin")) {
             throw new CredencialesInvalidas();
         }
 
-        TipoIncidencia tipoSistema = tiposIncidencia.get(tipo.getId());
-        if (tipoSistema == null) {
-            throw new TipoIncidenciaNoencontrado();
-        }
+        // BUSCAR EN BASE DE DATOS (usando repositorio)
+        TipoIncidencia tipoSistema = repositorioTipos.buscarPorId(tipo.getId())
+                .orElseThrow(TipoIncidenciaNoencontrado::new);
 
+        // ESTA COMPROBACIÓN SE QUEDA ASÍ HASTA QUE CARLOS HAGA EL REPOSITORIOINCIDENCIAS
         boolean enUso = incidencias.values().stream()
                 .anyMatch(i -> i.getTipo().getId().equals(tipo.getId()));
 
@@ -260,7 +258,8 @@ public class ServicioIncidencias {
             throw new TipoIncidenciaEnUso();
         }
 
-        tiposIncidencia.remove(tipo.getId());
+        // BORRAR DE BASE DE DATOS (usando repositorio)
+        repositorioTipos.borrar(tipoSistema);
     }
 
 
