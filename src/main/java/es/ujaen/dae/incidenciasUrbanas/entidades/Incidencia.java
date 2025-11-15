@@ -1,5 +1,5 @@
 package es.ujaen.dae.incidenciasUrbanas.entidades;
-import es.ujaen.dae.incidenciasUrbanas.excepciones.TipoIncidenciaInvalido;
+
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -11,8 +11,9 @@ import java.util.UUID;
 @Entity
 public class Incidencia {
 
-    // Atributos
     @Id
+    @GeneratedValue
+    @UuidGenerator
     private UUID id;
 
     @NotNull
@@ -27,17 +28,21 @@ public class Incidencia {
     @NotBlank
     private String localizacionGPS;
 
-    @NotBlank
+    @NotNull
+    @Enumerated(EnumType.STRING)
     private Estado estado;
 
-    @Transient
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
     private Usuario usuario; // quien la registra
 
-    @Transient
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
     private TipoIncidencia tipo; // tipo de incidencia
 
-    public Incidencia(Usuario usuario, TipoIncidencia tipo, String descripcion, String localizacion, String localizacionGPS) {
-        this.id = UUID.randomUUID();
+    public Incidencia(Usuario usuario,
+                      TipoIncidencia tipo,
+                      String descripcion,
+                      String localizacion,
+                      String localizacionGPS) {
         this.fecha = LocalDateTime.now();
         this.usuario = usuario;
         this.tipo = tipo;
@@ -48,7 +53,6 @@ public class Incidencia {
     }
 
     public Incidencia() {
-
     }
 
     public UUID getId() {
@@ -57,6 +61,10 @@ public class Incidencia {
 
     public LocalDateTime getFecha() {
         return fecha;
+    }
+
+    public void setFecha(LocalDateTime fecha) {
+        this.fecha = fecha;
     }
 
     public String getDescripcion() {
@@ -87,8 +95,16 @@ public class Incidencia {
         return estado;
     }
 
+    public void setEstado(Estado estado) {
+        this.estado = estado;
+    }
+
     public Usuario getUsuario() {
         return usuario;
+    }
+
+    public void setUsuario(Usuario usuario) {
+        this.usuario = usuario;
     }
 
     public TipoIncidencia getTipo() {
@@ -97,22 +113,6 @@ public class Incidencia {
 
     public void setTipo(TipoIncidencia tipo) {
         this.tipo = tipo;
-    }
-
-    public void setId(UUID id) {
-        this.id = id;
-    }
-
-    public void setFecha(LocalDateTime fecha) {
-        this.fecha = fecha;
-    }
-
-    public void setEstado(Estado estado) {
-        this.estado = estado;
-    }
-
-    public void setUsuario(Usuario usuario) {
-        this.usuario = usuario;
     }
 
     @Override
@@ -129,4 +129,3 @@ public class Incidencia {
                 '}';
     }
 }
-
