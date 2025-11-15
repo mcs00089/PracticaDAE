@@ -1,23 +1,23 @@
 package es.ujaen.dae.incidenciasUrbanas.entidades;
 
-import es.ujaen.dae.incidenciasUrbanas.excepciones.PasswordIncorrecta;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 
 import java.time.LocalDate;
 
-
+@Entity
 public class Usuario {
-    Integer id;
-
     @NotBlank
     String nombre;
 
     @NotBlank
     String apellidos;
 
-    @NotBlank
+    @NotNull
     LocalDate fechaNacimiento;
 
     @NotBlank
@@ -26,6 +26,7 @@ public class Usuario {
     @Pattern(regexp = "^(\\+34|0034|34)?[6789]\\d{8}$", message = "No es un número de teléfono válido")
     String telefono;
 
+    @Id
     @Email
     String email;
 
@@ -35,8 +36,7 @@ public class Usuario {
     @NotBlank
     String clave;
 
-    public Usuario(int id, String nombre, String apellidos, LocalDate fechaNacimiento, String direccion, String telefono, String email, String login, String clave) {
-        this.id = id;
+    public Usuario(String nombre, String apellidos, LocalDate fechaNacimiento, String direccion, String telefono, String email, String login, String clave) {
         this.nombre = nombre;
         this.apellidos = apellidos;
         this.fechaNacimiento = fechaNacimiento;
@@ -47,12 +47,8 @@ public class Usuario {
         this.clave = clave;
     }
 
-    public int getId() {
-        return id;
-    }
+    public Usuario() {
 
-    public void setId(int id) {
-        this.id = id;
     }
 
     public String getNombre() {
@@ -119,13 +115,6 @@ public class Usuario {
         this.clave = clave;
     }
 
-    //Método según UML
-    public void cambiarClave(String claveActual, String nuevaClave) {
-        if (!this.clave.equals(claveActual)) {
-            throw new PasswordIncorrecta();
-        }
-        this.clave = nuevaClave;
-    }
 
 
 }

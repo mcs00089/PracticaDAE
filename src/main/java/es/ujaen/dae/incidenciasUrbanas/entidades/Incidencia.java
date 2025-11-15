@@ -1,24 +1,41 @@
 package es.ujaen.dae.incidenciasUrbanas.entidades;
 import es.ujaen.dae.incidenciasUrbanas.excepciones.TipoIncidenciaInvalido;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import org.hibernate.annotations.UuidGenerator;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+@Entity
 public class Incidencia {
 
     // Atributos
+    @Id
     private UUID id;
+
+    @NotNull
     private LocalDateTime fecha;
+
+    @NotBlank
     private String descripcion;
+
+    @NotBlank
     private String localizacion;
-    private String localizacionGPS; // opcional
+
+    @NotBlank
+    private String localizacionGPS;
+
+    @NotBlank
     private Estado estado;
 
-    // Relaciones
+    @Transient
     private Usuario usuario; // quien la registra
+
+    @Transient
     private TipoIncidencia tipo; // tipo de incidencia
 
-    // Constructor
     public Incidencia(Usuario usuario, TipoIncidencia tipo, String descripcion, String localizacion, String localizacionGPS) {
         this.id = UUID.randomUUID();
         this.fecha = LocalDateTime.now();
@@ -30,7 +47,10 @@ public class Incidencia {
         this.estado = Estado.PENDIENTE; // estado inicial por defecto
     }
 
-    // Getters y Setters
+    public Incidencia() {
+
+    }
+
     public UUID getId() {
         return id;
     }
@@ -75,26 +95,26 @@ public class Incidencia {
         return tipo;
     }
 
-    // Método según UML
-    public void actualizarEstado(Estado nuevoEstado) {
-        this.estado = nuevoEstado;
+    public void setTipo(TipoIncidencia tipo) {
+        this.tipo = tipo;
     }
 
-    //Cambio de estado?
-    public void cambiarEstado(Estado nuevoEstado, Usuario usuario) {
-        this.estado = nuevoEstado;
+    public void setId(UUID id) {
+        this.id = id;
     }
 
-    //Cambio de tipo de incidencia
-    public void cambiarTipoIncidencia(TipoIncidencia nuevoTipo) {
-        if (nuevoTipo == null) {
-            throw new TipoIncidenciaInvalido();
-        }
-        this.tipo = nuevoTipo;
+    public void setFecha(LocalDateTime fecha) {
+        this.fecha = fecha;
     }
 
+    public void setEstado(Estado estado) {
+        this.estado = estado;
+    }
 
-    // Opcional: para depuración o mostrar en pantalla
+    public void setUsuario(Usuario usuario) {
+        this.usuario = usuario;
+    }
+
     @Override
     public String toString() {
         return "Incidencia{" +

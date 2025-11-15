@@ -1,12 +1,25 @@
 package es.ujaen.dae.incidenciasUrbanas.entidades;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.validation.constraints.NotBlank;
+import org.hibernate.annotations.UuidGenerator;
+
 import java.util.UUID;
 import java.util.List;
 
+@Entity
 public class TipoIncidencia {
 
     // Atributos
+    @Id
     private UUID id;
+
+    @NotBlank
     private String nombre;
+
+    @NotBlank
     private String descripcion;
 
     // Constructor
@@ -16,7 +29,10 @@ public class TipoIncidencia {
         this.descripcion = descripcion;
     }
 
-    // Getters y Setters
+    public TipoIncidencia() {
+
+    }
+
     public UUID getId() {
         return id;
     }
@@ -35,20 +51,6 @@ public class TipoIncidencia {
 
     public void setDescripcion(String descripcion) {
         this.descripcion = descripcion;
-    }
-
-    //meto un boolean porque ahora mismo no tenemos lista de tipos de excepción
-    public static boolean eliminarTipo(TipoIncidencia tipo, List<Incidencia> incidencias) {
-        // Comprobar si alguna incidencia usa ese tipo
-        for (Incidencia inc : incidencias) {
-            if (inc.getTipo().equals(tipo)) {
-                System.out.println("No se puede eliminar: el tipo está siendo usado por una incidencia.");
-                return false;
-            }
-        }
-        // Si llegamos aquí, el tipo no está en uso
-        System.out.println("Tipo de incidencia eliminado correctamente.");
-        return true;
     }
 
     // Para mostrar información legible
