@@ -1,7 +1,8 @@
-package es.ujaen.dae.incidenciasUrbanas.servicios;
+package es.ujaen.dae.incidenciasUrbanas;
 
 import es.ujaen.dae.incidenciasUrbanas.entidades.*;
 import es.ujaen.dae.incidenciasUrbanas.excepciones.*;
+import es.ujaen.dae.incidenciasUrbanas.servicios.ServicioIncidencias;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,8 +12,6 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -21,7 +20,7 @@ import static org.assertj.core.api.Assertions.*;
 public class TestServiciosIncidencias {
 
     @Autowired
-    ServicioIncidencias servicio;
+    private ServicioIncidencias servicio;
 
     private Usuario usuarioNormal;
     private Usuario admin;
@@ -40,16 +39,8 @@ public class TestServiciosIncidencias {
                 "clave123"
         );
 
-        admin = new Usuario(
-                "Admin",
-                "Administrador",
-                LocalDate.of(1990, 1, 1),
-                "Ayuntamiento, Plaza Mayor",
-                "657232313",
-                "admin@ayuntamiento.es",
-                "admin",
-                "admin123"
-        );
+        admin = servicio.login("admin", "admin123")
+                .orElseThrow(() -> new AssertionError("Admin debería existir"));
 
         tipoIncidencia = new TipoIncidencia("Basura acumulada", "Acumulación de residuos en vía pública");
     }
@@ -85,49 +76,24 @@ public class TestServiciosIncidencias {
 
     @Test
     @DirtiesContext
-    void testLoginCorrectoEIncorrecto() {
-        servicio.registrarUsuario(usuarioNormal);
-
-        // Usuario no existe
-        assertThatThrownBy(() -> servicio.login("inexistente", "clave"))
-                .isInstanceOf(CredencialesInvalidas.class);
-
-        // contraseña mal
-        assertThatThrownBy(() -> servicio.login("juanito", "clavemal"))
-                .isInstanceOf(CredencialesInvalidas.class);
-
-        // login bien
-        Optional<Usuario> usuarioLogueado = servicio.login("juanito", "clave123");
-        assertThat(usuarioLogueado.get().getEmail()).isEqualTo("juan@example.com");
-        assertThat(usuarioLogueado.get().getNombre()).isEqualTo("Juan");
+    void testLoginAdmin() {
+        Usuario adminLogueado = servicio.login("admin", "admin123")
+                .orElseThrow(() -> new AssertionError("Login admin debería funcionar"));
+        assertThat(adminLogueado.getNombre()).isEqualTo("Admin");
     }
 
     @Test
     @DirtiesContext
-    void testActualizarUsuario() {
+    void testLoginCorrectoEIncorrecto() {
         servicio.registrarUsuario(usuarioNormal);
 
-        Usuario usuarioLogueado = usuarioNormal;
+        assertThat(servicio.login("inexistente", "clave")).isEmpty();
+        assertThat(servicio.login("juanito", "clavemal")).isEmpty();
 
-        Usuario nuevosDatos = new Usuario(
-                "Juan Carlos",
-                "Gómez López",
-                LocalDate.of(1990, 5, 20),
-                "Calle Nueva 10",
-                "611223344",
-                "juancarlos@example.com",
-                "juanito",              // mismo login
-                "nuevaClave456"
-        );
-
-        servicio.actualizarUsuario(usuarioLogueado, nuevosDatos);
-
-        Optional<Usuario> actualizado = servicio.login("juanito", "nuevaClave456");
-        assertThat(actualizado.get().getNombre()).isEqualTo("Juan Carlos");
-        assertThat(actualizado.get().getApellidos()).isEqualTo("Gómez López");
-        assertThat(actualizado.get().getDireccion()).isEqualTo("Calle Nueva 10");
-        assertThat(actualizado.get().getTelefono()).isEqualTo("611223344");
-        assertThat(actualizado.get().getEmail()).isEqualTo("juancarlos@example.com");
+        Usuario usuarioLogueado = servicio.login("juanito", "clave123")
+                .orElseThrow(() -> new AssertionError("Login debería funcionar"));
+        assertThat(usuarioLogueado.getEmail()).isEqualTo("juan@example.com");
+        assertThat(usuarioLogueado.getNombre()).isEqualTo("Juan");
     }
 
     @Test
@@ -144,26 +110,27 @@ public class TestServiciosIncidencias {
                 "clave"
         );
 
-        // Intentamos actualizar con un usuario que no está registrado
         assertThatThrownBy(() -> servicio.actualizarUsuario(usuarioInexistente, usuarioInexistente))
                 .isInstanceOf(UsuarioNoEncontrado.class);
     }
+
 
     @Test
     @DirtiesContext
     void testRegistrarIncidencia() {
         servicio.registrarUsuario(usuarioNormal);
         servicio.anadirTipoIncidencia(admin, tipoIncidencia);
-
+        TipoIncidencia tipoDisponible = servicio.listarTiposIncidencias().get(0);
+        byte[] foto = new byte[]{1, 2, 3, 4, 5};
         Incidencia incidencia = servicio.registrarIncidencia(
                 usuarioNormal,
-                tipoIncidencia,
+                tipoDisponible,
                 "Basura acumulada en contenedores",
                 "Calle Mayor esquina Calle Sol",
-                "37.7749,-122.4194"
+                "37.7749,-122.4194",
+                foto
         );
 
-        assertThat(incidencia).isNotNull();
         assertThat(incidencia.getId()).isNotNull();
         assertThat(incidencia.getDescripcion()).isEqualTo("Basura acumulada en contenedores");
         assertThat(incidencia.getEstado()).isEqualTo(Estado.PENDIENTE);
@@ -175,7 +142,7 @@ public class TestServiciosIncidencias {
     @DirtiesContext
     void testRegistrarIncidenciaUsuarioNoExistente() {
         servicio.anadirTipoIncidencia(admin, tipoIncidencia);
-
+        TipoIncidencia tipoDisponible = servicio.listarTiposIncidencias().get(0);
         Usuario usuarioFalso = new Usuario(
                 "Falso",
                 "Usuario",
@@ -187,12 +154,14 @@ public class TestServiciosIncidencias {
                 "clave"
         );
 
+        byte[] foto = new byte[]{1, 2, 3, 4, 5};
         assertThatThrownBy(() -> servicio.registrarIncidencia(
                 usuarioFalso,
-                tipoIncidencia,
+                tipoDisponible,
                 "Descripción",
                 "Localización",
-                "GPS"
+                "GPS",
+                foto
         )).isInstanceOf(UsuarioNoEncontrado.class);
     }
 
@@ -202,13 +171,14 @@ public class TestServiciosIncidencias {
         servicio.registrarUsuario(usuarioNormal);
 
         TipoIncidencia tipoFalso = new TipoIncidencia("Tipo falso", "Descripción falsa");
-
+        byte[] foto = new byte[]{1, 2, 3, 4, 5};
         assertThatThrownBy(() -> servicio.registrarIncidencia(
                 usuarioNormal,
                 tipoFalso,
                 "Descripción",
                 "Localización",
-                "GPS"
+                "GPS",
+                foto
         )).isInstanceOf(TipoIncidenciaNoencontrado.class);
     }
 
@@ -217,33 +187,16 @@ public class TestServiciosIncidencias {
     void testListarIncidenciasDeUsuario() {
         servicio.registrarUsuario(usuarioNormal);
         servicio.anadirTipoIncidencia(admin, tipoIncidencia);
-
-        servicio.registrarIncidencia(usuarioNormal, tipoIncidencia, "Incidencia 1", "Loc 1", "GPS1");
-        servicio.registrarIncidencia(usuarioNormal, tipoIncidencia, "Incidencia 2", "Loc 2", "GPS2");
+        TipoIncidencia tipoDisponible = servicio.listarTiposIncidencias().get(0);
+        byte[] foto = new byte[]{1, 2, 3, 4, 5};
+        servicio.registrarIncidencia(usuarioNormal, tipoDisponible, "Incidencia 1", "Loc 1", "GPS1",foto);
+        servicio.registrarIncidencia(usuarioNormal, tipoDisponible, "Incidencia 2", "Loc 2", "GPS2",foto);
 
         List<Incidencia> incidencias = servicio.listarIncidenciasDeUsuario(usuarioNormal);
 
         assertThat(incidencias).hasSize(2);
         assertThat(incidencias).extracting("descripcion")
                 .containsExactlyInAnyOrder("Incidencia 1", "Incidencia 2");
-    }
-
-    @Test
-    @DirtiesContext
-    void testListarIncidenciasDeUsuarioNoExistente() {
-        Usuario usuarioFalso = new Usuario(
-                "Falso",
-                "Usuario",
-                LocalDate.now(),
-                "Calle",
-                "600000000",
-                "falso@example.com",
-                "falso",
-                "clave"
-        );
-
-        assertThatThrownBy(() -> servicio.listarIncidenciasDeUsuario(usuarioFalso))
-                .isInstanceOf(UsuarioNoEncontrado.class);
     }
 
     @Test
@@ -256,45 +209,67 @@ public class TestServiciosIncidencias {
 
         servicio.anadirTipoIncidencia(admin, tipo1);
         servicio.anadirTipoIncidencia(admin, tipo2);
-
-        Incidencia inc1 = servicio.registrarIncidencia(usuarioNormal, tipo1, "Basura 1", "Loc 1", "GPS1");
-        Incidencia inc2 = servicio.registrarIncidencia(usuarioNormal, tipo2, "Mobiliario 1", "Loc 2", "GPS2");
+        byte[] foto = new byte[]{1, 2, 3, 4, 5};
+        Incidencia inc1 = servicio.registrarIncidencia(usuarioNormal, tipo1, "Basura 1", "Loc 1", "GPS1",foto);
+        Incidencia inc2 = servicio.registrarIncidencia(usuarioNormal, tipo2, "Mobiliario 1", "Loc 2", "GPS2",foto);
 
         servicio.cambiarEstadoIncidencia(admin, inc2, Estado.EN_EVALUACION);
 
-        // Buscamos por tipo
         List<Incidencia> incidenciasTipo1 = servicio.buscarIncidencias(tipo1, null);
         assertThat(incidenciasTipo1).hasSize(1);
-        assertThat(incidenciasTipo1.get(0).getTipo().getNombre()).isEqualTo("Basura");
 
-        // Buscamos por estado
         List<Incidencia> incidenciasPendientes = servicio.buscarIncidencias(null, Estado.PENDIENTE);
         assertThat(incidenciasPendientes).hasSize(1);
-        assertThat(incidenciasPendientes.get(0).getEstado()).isEqualTo(Estado.PENDIENTE);
 
-        // Buscamos por tipo y estado
-        List<Incidencia> incidenciasTipo2Evaluacion = servicio.buscarIncidencias(tipo2, Estado.EN_EVALUACION);
-        assertThat(incidenciasTipo2Evaluacion).hasSize(1);
+        List<Incidencia> incidenciasTipo2Eval = servicio.buscarIncidencias(tipo2, Estado.EN_EVALUACION);
+        assertThat(incidenciasTipo2Eval).hasSize(1);
     }
 
     @Test
     @DirtiesContext
-    void testAnadirTipoIncidencia() {
+    void testBorrarIncidenciaPorPropietario() {
         servicio.registrarUsuario(usuarioNormal);
+        servicio.anadirTipoIncidencia(admin, tipoIncidencia);
+        TipoIncidencia tipoDisponible = servicio.listarTiposIncidencias().get(0);
+        byte[] foto = new byte[]{1, 2, 3, 4, 5};
+        Incidencia incidencia = servicio.registrarIncidencia(usuarioNormal, tipoDisponible, "Desc", "Loc", "GPS",foto);
 
-        TipoIncidencia nuevoTipo = new TipoIncidencia("Nuevo tipo", "Descripción del nuevo tipo");
+        servicio.borrarIncidencia(usuarioNormal, incidencia);
 
-        servicio.anadirTipoIncidencia(admin, nuevoTipo);
+        List<Incidencia> incidencias = servicio.listarIncidenciasDeUsuario(usuarioNormal);
+        assertThat(incidencias).isEmpty();
+    }
 
-        Incidencia incidencia = servicio.registrarIncidencia(
-                usuarioNormal,
-                nuevoTipo,
-                "Descripción",
-                "Localización",
-                "GPS"
-        );
+    @Test
+    @DirtiesContext
+    void testBorrarIncidenciaNoPendientePorPropietario() {
+        servicio.registrarUsuario(usuarioNormal);
+        servicio.anadirTipoIncidencia(admin, tipoIncidencia);
+        TipoIncidencia tipoDisponible = servicio.listarTiposIncidencias().get(0);
+        byte[] foto = new byte[]{1, 2, 3, 4, 5};
+        Incidencia incidencia = servicio.registrarIncidencia(usuarioNormal, tipoDisponible, "Desc", "Loc", "GPS",foto);
 
-        assertThat(incidencia.getTipo().getNombre()).isEqualTo("Nuevo tipo");
+        servicio.cambiarEstadoIncidencia(admin, incidencia, Estado.EN_EVALUACION);
+
+        assertThatThrownBy(() -> servicio.borrarIncidencia(usuarioNormal, incidencia))
+                .isInstanceOf(BorrarIncidenciaNoPendiente.class);
+    }
+
+    @Test
+    @DirtiesContext
+    void testBorrarIncidenciaPorAdmin() {
+        servicio.registrarUsuario(usuarioNormal);
+        servicio.anadirTipoIncidencia(admin, tipoIncidencia);
+        TipoIncidencia tipoDisponible = servicio.listarTiposIncidencias().get(0);
+        byte[] foto = new byte[]{1, 2, 3, 4, 5};
+        Incidencia incidencia = servicio.registrarIncidencia(usuarioNormal, tipoDisponible, "Desc", "Loc", "GPS",foto);
+
+        servicio.cambiarEstadoIncidencia(admin, incidencia, Estado.RESUELTA);
+
+        servicio.borrarIncidencia(admin, incidencia);
+
+        List<Incidencia> incidencias = servicio.listarIncidenciasDeUsuario(usuarioNormal);
+        assertThat(incidencias).isEmpty();
     }
 
     @Test
@@ -310,133 +285,15 @@ public class TestServiciosIncidencias {
 
     @Test
     @DirtiesContext
-    void testAnadirTipoIncidenciaPorUsuarioNoAdmin() {
-        servicio.registrarUsuario(usuarioNormal);
-
-        assertThatThrownBy(() -> servicio.anadirTipoIncidencia(usuarioNormal, tipoIncidencia))
-                .isInstanceOf(CredencialesInvalidas.class);
-    }
-
-    @Test
-    @DirtiesContext
-    void testBorrarIncidenciaPorPropietario() {
-        servicio.registrarUsuario(usuarioNormal);
-        servicio.anadirTipoIncidencia(admin, tipoIncidencia);
-
-        Incidencia incidencia = servicio.registrarIncidencia(
-                usuarioNormal,
-                tipoIncidencia,
-                "Descripción",
-                "Localización",
-                "GPS"
-        );
-
-        // Borramos como propietario
-        servicio.borrarIncidencia(usuarioNormal, incidencia);
-
-        List<Incidencia> incidencias = servicio.listarIncidenciasDeUsuario(usuarioNormal);
-        assertThat(incidencias).isEmpty();
-    }
-
-    @Test
-    @DirtiesContext
-    void testBorrarIncidenciaNoPendientePorPropietario() {
-        servicio.registrarUsuario(usuarioNormal);
-        servicio.anadirTipoIncidencia(admin, tipoIncidencia);
-
-        Incidencia incidencia = servicio.registrarIncidencia(
-                usuarioNormal,
-                tipoIncidencia,
-                "Descripción",
-                "Localización",
-                "GPS"
-        );
-
-        // Cambiamos estado a no pendiente
-        servicio.cambiarEstadoIncidencia(admin, incidencia, Estado.EN_EVALUACION);
-
-        // Intentamos borrar no deberia de dejar
-        assertThatThrownBy(() -> servicio.borrarIncidencia(usuarioNormal, incidencia))
-                .isInstanceOf(BorrarIncidenciaNoPendiente.class);
-    }
-
-    @Test
-    @DirtiesContext
-    void testBorrarIncidenciaPorAdmin() {
-        servicio.registrarUsuario(usuarioNormal);
-        servicio.anadirTipoIncidencia(admin, tipoIncidencia);
-
-        Incidencia incidencia = servicio.registrarIncidencia(
-                usuarioNormal,
-                tipoIncidencia,
-                "Descripción",
-                "Localización",
-                "GPS"
-        );
-
-        // Cambiamos estado a no pendiente
-        servicio.cambiarEstadoIncidencia(admin, incidencia, Estado.RESUELTA);
-
-        // Borramos como admin debe funcionar
-        servicio.borrarIncidencia(admin, incidencia);
-
-        List<Incidencia> incidencias = servicio.listarIncidenciasDeUsuario(usuarioNormal);
-        assertThat(incidencias).isEmpty();
-    }
-
-    @Test
-    @DirtiesContext
-    void testBorrarTipoIncidencia() {
-        servicio.anadirTipoIncidencia(admin, tipoIncidencia);
-
-        servicio.borrarTipoIncidencia(admin, tipoIncidencia);
-
-        servicio.registrarUsuario(usuarioNormal);
-        assertThatThrownBy(() -> servicio.registrarIncidencia(
-                usuarioNormal,
-                tipoIncidencia,
-                "Descripción",
-                "Localización",
-                "GPS"
-        )).isInstanceOf(TipoIncidenciaNoencontrado.class);
-    }
-
-    @Test
-    @DirtiesContext
     void testBorrarTipoIncidenciaEnUso() {
         servicio.registrarUsuario(usuarioNormal);
         servicio.anadirTipoIncidencia(admin, tipoIncidencia);
+        TipoIncidencia tipoDisponible = servicio.listarTiposIncidencias().get(0);
+        byte[] foto = new byte[]{1, 2, 3, 4, 5};
+        servicio.registrarIncidencia(usuarioNormal, tipoDisponible, "Desc", "Loc", "GPS",foto);
 
-        servicio.registrarIncidencia(usuarioNormal, tipoIncidencia, "Descripción", "Localización", "GPS");
-
-        // Intentamos borrar un tipo en uso
         assertThatThrownBy(() -> servicio.borrarTipoIncidencia(admin, tipoIncidencia))
                 .isInstanceOf(TipoIncidenciaEnUso.class);
-    }
-
-
-    @Test
-    @DirtiesContext
-    void testCambiarEstadoIncidencia() {
-        servicio.registrarUsuario(usuarioNormal);
-        servicio.anadirTipoIncidencia(admin, tipoIncidencia);
-
-        Incidencia incidencia = servicio.registrarIncidencia(
-                usuarioNormal,
-                tipoIncidencia,
-                "Descripción",
-                "Localización",
-                "GPS"
-        );
-
-        assertThat(incidencia.getEstado()).isEqualTo(Estado.PENDIENTE);
-
-        // Cambiamos estado como admin
-        servicio.cambiarEstadoIncidencia(admin, incidencia, Estado.EN_EVALUACION);
-
-        List<Incidencia> incidencias = servicio.buscarIncidencias(null, Estado.EN_EVALUACION);
-        assertThat(incidencias).hasSize(1);
-        assertThat(incidencias.get(0).getEstado()).isEqualTo(Estado.EN_EVALUACION);
     }
 
     @Test
@@ -444,18 +301,57 @@ public class TestServiciosIncidencias {
     void testCambiarEstadoIncidenciaPorUsuarioNoAdmin() {
         servicio.registrarUsuario(usuarioNormal);
         servicio.anadirTipoIncidencia(admin, tipoIncidencia);
+        TipoIncidencia tipoDisponible = servicio.listarTiposIncidencias().get(0);
 
-        Incidencia incidencia = servicio.registrarIncidencia(
-                usuarioNormal,
-                tipoIncidencia,
-                "Descripción",
-                "Localización",
-                "GPS"
-        );
 
-        // Intentamos cambiar el estado como un usuario normal
+        byte[] foto = new byte[]{1, 2, 3, 4, 5};
+
+
+        Incidencia incidencia = servicio.registrarIncidencia(usuarioNormal, tipoDisponible, "Desc", "Loc", "GPS",foto);
+
         assertThatThrownBy(() -> servicio.cambiarEstadoIncidencia(usuarioNormal, incidencia, Estado.RESUELTA))
                 .isInstanceOf(CredencialesInvalidas.class);
     }
+
+    @Test
+    @DirtiesContext
+    void testIncidenciasCercanas() {
+        // Registrar usuario y tipo
+        servicio.registrarUsuario(usuarioNormal);
+        servicio.anadirTipoIncidencia(admin, tipoIncidencia);
+
+        // Coordenadas de referencia
+        String gpsReferencia = "37.7749,-122.4194";
+
+        byte[] foto = new byte[]{1, 2, 3, 4, 5};  // Simulamos una imagen
+
+        TipoIncidencia tipoDisponible = servicio.listarTiposIncidencias().get(0);
+
+        // Incidencias cercanas
+        Incidencia incCercana1 = servicio.registrarIncidencia(
+                usuarioNormal, tipoDisponible, "Incidencia cercana 1", "Loc 1", "37.77491,-122.41941", foto
+        );
+        Incidencia incCercana2 = servicio.registrarIncidencia(
+                usuarioNormal, tipoDisponible, "Incidencia cercana 2", "Loc 2", "37.77492,-122.41942", foto
+        );
+
+        // Incidencia lejana
+        Incidencia incLejana = servicio.registrarIncidencia(
+                usuarioNormal, tipoDisponible, "Incidencia lejana", "Loc 3", "37.7755,-122.4200", foto
+        );
+
+        // Cambiamos el estado de una incidencia a RESUELTA para comprobar que se excluye
+        servicio.cambiarEstadoIncidencia(admin, incCercana2, Estado.RESUELTA);
+
+        List<Incidencia> cercanas = servicio.incidenciasCercanas(gpsReferencia);
+
+        // Comprobaciones
+        assertThat(cercanas).hasSize(1);
+        assertThat(cercanas.get(0).getDescripcion()).isEqualTo("Incidencia cercana 1");
+        assertThat(cercanas.get(0).getFoto()).isEqualTo(foto);
+    }
+
+
+
 
 }

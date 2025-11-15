@@ -14,7 +14,8 @@ public class TipoIncidencia {
 
     // Atributos
     @Id
-    private UUID id;
+    @GeneratedValue(strategy=GenerationType.IDENTITY)
+    private int id;
 
     @NotBlank
     private String nombre;
@@ -24,7 +25,7 @@ public class TipoIncidencia {
 
     // Constructor
     public TipoIncidencia(String nombre, String descripcion) {
-        this.id = UUID.randomUUID();
+
         this.nombre = nombre;
         this.descripcion = descripcion;
     }
@@ -33,7 +34,7 @@ public class TipoIncidencia {
 
     }
 
-    public UUID getId() {
+    public int getId() {
         return id;
     }
 
@@ -53,7 +54,6 @@ public class TipoIncidencia {
         this.descripcion = descripcion;
     }
 
-    // Para mostrar información legible
     @Override
     public String toString() {
         return "TipoIncidencia{" +
