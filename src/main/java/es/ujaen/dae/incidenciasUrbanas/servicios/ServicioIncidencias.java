@@ -198,7 +198,7 @@ public class ServicioIncidencias {
     }
 
 
-    // Voluntario 2
+    // Voluntario  2
     @Transactional
     public List<Incidencia> incidenciasCercanas(String localizacionGPS) {
         String[] partes = localizacionGPS.split(",");
