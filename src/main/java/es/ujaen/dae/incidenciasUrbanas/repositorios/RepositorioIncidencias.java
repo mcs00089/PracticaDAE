@@ -3,6 +3,7 @@ package es.ujaen.dae.incidenciasUrbanas.repositorios;
 import es.ujaen.dae.incidenciasUrbanas.entidades.Estado;
 import es.ujaen.dae.incidenciasUrbanas.entidades.Incidencia;
 import es.ujaen.dae.incidenciasUrbanas.entidades.TipoIncidencia;
+import es.ujaen.dae.incidenciasUrbanas.entidades.Usuario;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
@@ -37,7 +38,7 @@ public class RepositorioIncidencias {
     /**
      * Busca una incidencia por su ID.
      */
-    public Optional<Incidencia> buscarPorId(UUID id) {
+    public Optional<Incidencia> buscarPorId(int id) {
         Incidencia inc = entityManager.find(Incidencia.class, id);
         return Optional.ofNullable(inc);
     }
@@ -82,4 +83,41 @@ public class RepositorioIncidencias {
                 .setParameter("estado", estado)
                 .getResultList();
     }
+
+    public List<Incidencia> buscarPorUsuario(Usuario usuario) {
+        return entityManager.createQuery(
+                        "SELECT i FROM Incidencia i WHERE i.usuario = :u", Incidencia.class)
+                .setParameter("u", usuario)
+                .getResultList();
+    }
+
+    public List<Incidencia> buscarPorTipoYEstado(TipoIncidencia tipo, Estado estado) {
+        StringBuilder jpql = new StringBuilder("SELECT i FROM Incidencia i WHERE 1=1");
+
+        if (tipo != null) {
+            jpql.append(" AND i.tipo = :tipo");
+        }
+        if (estado != null) {
+            jpql.append(" AND i.estado = :estado");
+        }
+
+        var query = entityManager.createQuery(jpql.toString(), Incidencia.class);
+
+        if (tipo != null) {
+            query.setParameter("tipo", tipo);
+        }
+        if (estado != null) {
+            query.setParameter("estado", estado);
+        }
+
+        return query.getResultList();
+    }
+
+    public List<Incidencia> buscarPorEstados(List<Estado> estados) {
+        return entityManager.createQuery(
+                        "SELECT i FROM Incidencia i WHERE i.estado IN :estados", Incidencia.class)
+                .setParameter("estados", estados)
+                .getResultList();
+    }
+
 }

@@ -1,5 +1,6 @@
 package es.ujaen.dae.incidenciasUrbanas.repositorios;
 
+import es.ujaen.dae.incidenciasUrbanas.entidades.Incidencia;
 import es.ujaen.dae.incidenciasUrbanas.entidades.TipoIncidencia;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
@@ -7,6 +8,7 @@ import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -41,7 +43,7 @@ public class RepositorioTipoIncidencia {
      * @param id El UUID del tipo de incidencia
      * @return Optional con el tipo de incidencia si existe
      */
-    public Optional<TipoIncidencia> buscarPorId(UUID id) {
+    public Optional<TipoIncidencia> buscarPorId(int id) {
         TipoIncidencia tipo = entityManager.find(TipoIncidencia.class, id);
         return Optional.ofNullable(tipo);
     }
@@ -63,12 +65,17 @@ public class RepositorioTipoIncidencia {
         }
     }
 
+    public List<TipoIncidencia> buscarTodas() {
+        return entityManager.createQuery(
+                        "SELECT i FROM TipoIncidencia i", TipoIncidencia.class)
+                .getResultList();
+    }
+
     /**
      * Borra un tipo de incidencia de la base de datos.
      * @param tipo El tipo de incidencia a borrar
      */
     public void borrar(TipoIncidencia tipo) {
-        // Nos aseguramos de que la entidad esté gestionada (attached) antes de borrar
         if (entityManager.contains(tipo)) {
             entityManager.remove(tipo);
         } else {

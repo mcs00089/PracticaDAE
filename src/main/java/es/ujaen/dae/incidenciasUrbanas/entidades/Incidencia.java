@@ -12,9 +12,8 @@ import java.util.UUID;
 public class Incidencia {
 
     @Id
-    @GeneratedValue
-    @UuidGenerator
-    private UUID id;
+    @GeneratedValue(strategy=GenerationType.IDENTITY)
+    private int id;
 
     @NotNull
     private LocalDateTime fecha;
@@ -38,11 +37,15 @@ public class Incidencia {
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     private TipoIncidencia tipo; // tipo de incidencia
 
+    @Lob
+    @Basic(fetch = FetchType.LAZY)
+    private byte[] foto;
+
     public Incidencia(Usuario usuario,
                       TipoIncidencia tipo,
                       String descripcion,
                       String localizacion,
-                      String localizacionGPS) {
+                      String localizacionGPS,byte[] foto) {
         this.fecha = LocalDateTime.now();
         this.usuario = usuario;
         this.tipo = tipo;
@@ -50,12 +53,13 @@ public class Incidencia {
         this.localizacion = localizacion;
         this.localizacionGPS = localizacionGPS;
         this.estado = Estado.PENDIENTE; // estado inicial por defecto
+        this.foto = foto;
     }
 
     public Incidencia() {
     }
 
-    public UUID getId() {
+    public int getId() {
         return id;
     }
 
@@ -113,6 +117,14 @@ public class Incidencia {
 
     public void setTipo(TipoIncidencia tipo) {
         this.tipo = tipo;
+    }
+
+    public byte[] getFoto() {
+        return foto;
+    }
+
+    public void setFoto(byte[] foto) {
+        this.foto = foto;
     }
 
     @Override
