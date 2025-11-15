@@ -5,6 +5,7 @@ import es.ujaen.dae.incidenciasUrbanas.entidades.Incidencia;
 import es.ujaen.dae.incidenciasUrbanas.entidades.TipoIncidencia;
 import es.ujaen.dae.incidenciasUrbanas.entidades.Usuario;
 import es.ujaen.dae.incidenciasUrbanas.excepciones.*;
+import es.ujaen.dae.incidenciasUrbanas.repositorios.RepositorioIncidencias;
 import es.ujaen.dae.incidenciasUrbanas.repositorios.RepositorioTipoIncidencia;
 import es.ujaen.dae.incidenciasUrbanas.repositorios.RepositorioUsuarios;
 import jakarta.transaction.Transactional;
@@ -15,9 +16,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
 import java.time.LocalDate;
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
-
 
 @Service
 @Validated
@@ -29,10 +30,10 @@ public class ServicioIncidencias {
     @Autowired
     private RepositorioTipoIncidencia repositorioTipos;
 
-    private final Map<String, Usuario> usuarios = new TreeMap<>();
-    private final Map<UUID, Incidencia> incidencias = new HashMap<>();
+    @Autowired
+    private RepositorioIncidencias repositorioIncidencias;
 
-
+    // Admin por defecto (si queréis persistirlo en BD, se haría en otro sitio)
     private static final Usuario admin = new Usuario("Admin", "Administrador", LocalDate.of(1990, 1, 1),
             "Ayuntamiento, Plaza Mayor",
             "657232313",
@@ -42,15 +43,15 @@ public class ServicioIncidencias {
     );
 
     public ServicioIncidencias() {
-        usuarios.put(admin.getLogin(), admin);
+        // Antes metías el admin en el mapa; ahora ya no hay mapas
     }
 
+    // ================================================================
+    // USUARIOS
+    // ================================================================
 
     /**
-     * @brief Registra un nuevo usuario en el sistema.
-     * Añade el usuario a la base de datos
-     * @param usuario Objeto de tipo Usuario con los datos del nuevo usuario a registrar.
-     * @throws UsuarioYaExiste Si ya existe un usuario con el mismo login.
+     * Registra un nuevo usuario en el sistema.
      */
     @Transactional
     public void registrarUsuario(@Valid Usuario usuario) {
@@ -65,16 +66,10 @@ public class ServicioIncidencias {
         repositorioUsuario.guardar(usuario);
     }
 
-
     /**
-     * @brief Inicia sesión con un usuario registrado.
-     * Busca el usuario por su login y comprueba que la contraseña sea correcta.
-     * @param login Login de usuario.
-     * @param clave Contraseña del usuario.
-     * @return El objeto Usuario autenticado.
-     * @throws CredencialesInvalidas Si el login no existe o la contraseña no coincide.
+     * Inicia sesión con un usuario registrado.
      */
-    public Optional<Usuario> login(@NotBlank String login,@NotBlank String clave) {
+    public Optional<Usuario> login(@NotBlank String login, @NotBlank String clave) {
         Optional<Usuario> usuarioOpt = repositorioUsuario.buscarPorLogin(login);
 
         if (usuarioOpt.isEmpty()) {
@@ -89,15 +84,11 @@ public class ServicioIncidencias {
         return Optional.of(usuario);
     }
 
-
     /**
-     * @brief Actualiza los datos de un usuario existente.
-     * Reemplaza los datos del usuario con los nuevos valores.
-     * @param usuarioLogueado usuario logueado que se desea actualizar.
-     * @param nuevosDatos Usuario con los nuevos valores de los campos a modificar.
-     * @throws UsuarioNoEncontrado Si el usuario con el login especificado no existe.
+     * Actualiza los datos de un usuario existente.
      */
-    public void actualizarUsuario(@Valid Usuario usuarioLogueado,@Valid Usuario nuevosDatos) {
+    @Transactional
+    public void actualizarUsuario(@Valid Usuario usuarioLogueado, @Valid Usuario nuevosDatos) {
         Usuario usuActualizar = repositorioUsuario.buscarPorLogin(usuarioLogueado.getLogin())
                 .orElseThrow(UsuarioNoEncontrado::new);
 
@@ -110,128 +101,88 @@ public class ServicioIncidencias {
         usuActualizar.setClave(nuevosDatos.getClave());
 
         repositorioUsuario.actualizar(usuActualizar);
-
     }
 
+    // ================================================================
+    // INCIDENCIAS
+    // ================================================================
 
     /**
-     * @brief Registra una nueva incidencia de un usuario.
-     * Crea una nueva incidencia asociada al usuario y al tipo de incidencia indicado,
-     * y la añade al sistema.
-     * @param usuario usuario que hace la incidencia.
-     * @param tipoInci tipo incidencia.
-     * @param descripcion Descripción detallada del problema.
-     * @param localizacion Dirección o zona donde ocurre la incidencia.
-     * @param gps Coordenadas GPS del lugar de la incidencia.
-     * @return La incidencia recién creada.
-     * @throws UsuarioNoEncontrado Si el usuario con el login indicado no existe.
-     * @throws TipoIncidenciaNoencontrado Si el tipo de incidencia indicado no existe.
+     * Registra una nueva incidencia.
      */
-    public Incidencia registrarIncidencia(Usuario usuario, TipoIncidencia tipoInci, String descripcion, String localizacion, String gps) {
-        // VALIDACIÓN DE USUARIO (usando repositorio)
+    @Transactional
+    public Incidencia registrarIncidencia(Usuario usuario, TipoIncidencia tipoInci,
+                                          String descripcion, String localizacion, String gps) {
+
         if (usuario == null || !repositorioUsuario.existeLogin(usuario.getLogin())) {
             throw new UsuarioNoEncontrado();
         }
 
-        // VALIDACIÓN DE TIPOINCIDENCIA (usando repositorio)
+        // Usuario desde BD
+        Usuario usuarioBd = repositorioUsuario.buscarPorLogin(usuario.getLogin())
+                .orElseThrow(UsuarioNoEncontrado::new);
+
+        // Tipo desde BD
         TipoIncidencia tipo = repositorioTipos.buscarPorId(tipoInci.getId())
                 .orElseThrow(TipoIncidenciaNoencontrado::new);
 
-        Incidencia nueva = new Incidencia(usuario, tipo, descripcion, localizacion, gps);
+        Incidencia nueva = new Incidencia(usuarioBd, tipo, descripcion, localizacion, gps);
 
-        // ESTO SE QUEDA ASÍ HASTA QUE CARLOS HAGA EL REPOSITORIOINCIDENCIAS
-        incidencias.put(nueva.getId(), nueva);
-
-        return nueva;
+        // 👉 Ahora se guarda con el REPOSITORIO, no con el Map
+        return repositorioIncidencias.guardar(nueva);
     }
 
-
     /**
-     * @brief Lista todas las incidencias registradas por un usuario.
-     * Filtra las incidencias en el sistema y devuelve solo las que pertenecen al usuario con el login indicado.
-     * @param usuario usuario del que se quiere listar sus incidencias.
-     * @return Lista de incidencias asociadas al usuario.
+     * Lista todas las incidencias de un usuario.
      */
     public List<Incidencia> listarIncidenciasDeUsuario(Usuario usuario) {
-        if (usuario == null || !usuarios.containsKey(usuario.getLogin())) {
+        if (usuario == null) {
             throw new UsuarioNoEncontrado();
         }
 
-        return incidencias.values().stream()
-                .filter(i -> i.getUsuario().getLogin().equals(usuario.getLogin()))
+        // Comprobamos que el usuario existe en BD
+        repositorioUsuario.buscarPorLogin(usuario.getLogin())
+                .orElseThrow(UsuarioNoEncontrado::new);
+
+        // Tomamos todas las incidencias de BD y filtramos por login
+        return repositorioIncidencias.buscarTodas().stream()
+                .filter(i -> i.getUsuario() != null &&
+                        i.getUsuario().getLogin().equals(usuario.getLogin()))
                 .collect(Collectors.toList());
     }
 
     /**
-     * @brief Busca incidencias en el sistema según tipo y/o estado.
-     * Permite filtrar las incidencias por tipo o por estado. Si alguno de los parámetros es null, se ignora ese filtro.
-     * @param tipoIncidencia Identificador del tipo de incidencia.
-     * @param estado Estado de la incidencia.
-     * @return Lista de incidencias que cumplen los criterios de búsqueda.
+     * Busca incidencias por tipo y/o estado.
      */
     public List<Incidencia> buscarIncidencias(TipoIncidencia tipoIncidencia, Estado estado) {
-        return incidencias.values().stream()
-                .filter(i -> (tipoIncidencia == null || i.getTipo().getId().equals(tipoIncidencia.getId())) &&
-                        (estado == null || i.getEstado() == estado))
+        return repositorioIncidencias.buscarTodas().stream()
+                .filter(i -> (tipoIncidencia == null ||
+                        (i.getTipo() != null && i.getTipo().getId().equals(tipoIncidencia.getId())))
+                        && (estado == null || i.getEstado() == estado))
                 .collect(Collectors.toList());
     }
 
     /**
-     * @brief Añade un nuevo tipo de incidencia al sistema.
-     * Crea una nueva entrada en el mapa de tipos de incidencia si no existe otro tipo con el mismo nombre.
-     *
-     * @param tipo Objeto TipoIncidencia que se desea registrar.
-     * @throws IllegalArgumentException Si el tipo es nulo o ya existe un tipo con el mismo nombre.
+     * Elimina una incidencia del sistema.
      */
-    public void anadirTipoIncidencia(Usuario usuario, TipoIncidencia tipo) {
-        // VALIDACIÓN DE USUARIO (simplificada, ya no usa mapa)
-        if (usuario == null || !usuario.getLogin().equals("admin")) {
-            throw new CredencialesInvalidas();
-        }
-
-        if (tipo == null) {
-            throw new TipoIncidenciaInvalido();
-        }
-
-        // VALIDACIÓN DE TIPOINCIDENCIA (usando repositorio)
-        Optional<TipoIncidencia> existente = repositorioTipos.buscarPorNombre(tipo.getNombre());
-
-        if (existente.isPresent()) {
-            throw new TipoIncidenciaEnUso(); // O una nueva Excepción "TipoIncidenciaYaExiste"
-        }
-
-        // GUARDAR EN BASE DE DATOS (usando repositorio)
-        repositorioTipos.guardar(tipo);
-    }
-
-
-    /**
-     * @brief Elimina una incidencia del sistema.
-     * Permite borrar una incidencia si el usuario es su propietario y la incidencia está en estado PENDIENTE, o si el usuario tiene el rol de administrador.
-     *
-     * @param usuario Login del usuario que solicita el borrado.
-     * @param incidencia Identificador de la incidencia a eliminar.
-     *
-     * @throws IncidenciaNoEncontrada Si la incidencia indicada no existe.
-     * @throws UsuarioNoEncontrado Si el usuario no existe.
-     * @throws BorrarIncidenciaNoPendiente Si el usuario intenta borrar una incidencia no pendiente.
-     * @throws CredencialesInvalidas Si el usuario no tiene permiso para eliminar la incidencia.
-     */
+    @Transactional
     public void borrarIncidencia(Usuario usuario, Incidencia incidencia) {
         if (usuario == null) throw new UsuarioNoEncontrado();
         if (incidencia == null) throw new IncidenciaNoEncontrada();
 
-        Incidencia incSistema = incidencias.get(incidencia.getId());
-        if (incSistema == null) throw new IncidenciaNoEncontrada();
+        Usuario usuSistema = repositorioUsuario.buscarPorLogin(usuario.getLogin())
+                .orElseThrow(UsuarioNoEncontrado::new);
 
-        Usuario usuSistema = usuarios.get(usuario.getLogin());
-        if (usuSistema == null) throw new UsuarioNoEncontrado();
+        Incidencia incSistema = repositorioIncidencias.buscarPorId(incidencia.getId())
+                .orElseThrow(IncidenciaNoEncontrada::new);
 
-        boolean esAdmin = usuario.getLogin().equals("admin");
+        boolean esAdmin = usuSistema.getLogin().equals("admin");
 
-        if (esAdmin || incSistema.getUsuario().getLogin().equals(usuario.getLogin())) {
+        if (esAdmin || (incSistema.getUsuario() != null &&
+                incSistema.getUsuario().getLogin().equals(usuSistema.getLogin()))) {
+
             if (esAdmin || incSistema.getEstado() == Estado.PENDIENTE) {
-                incidencias.remove(incSistema.getId());
+                repositorioIncidencias.borrar(incSistema);
             } else {
                 throw new BorrarIncidenciaNoPendiente();
             }
@@ -240,47 +191,70 @@ public class ServicioIncidencias {
         }
     }
 
-    public void borrarTipoIncidencia(Usuario usuario, TipoIncidencia tipo) {
-        // VALIDACIÓN DE USUARIO (simplificada, ya no usa mapa)
-        if (usuario == null || !usuario.getLogin().equals("admin")) {
-            throw new CredencialesInvalidas();
-        }
-
-        // BUSCAR EN BASE DE DATOS (usando repositorio)
-        TipoIncidencia tipoSistema = repositorioTipos.buscarPorId(tipo.getId())
-                .orElseThrow(TipoIncidenciaNoencontrado::new);
-
-        // ESTA COMPROBACIÓN SE QUEDA ASÍ HASTA QUE CARLOS HAGA EL REPOSITORIOINCIDENCIAS
-        boolean enUso = incidencias.values().stream()
-                .anyMatch(i -> i.getTipo().getId().equals(tipo.getId()));
-
-        if (enUso) {
-            throw new TipoIncidenciaEnUso();
-        }
-
-        // BORRAR DE BASE DE DATOS (usando repositorio)
-        repositorioTipos.borrar(tipoSistema);
-    }
-
-
+    /**
+     * Cambia el estado de una incidencia.
+     */
+    @Transactional
     public void cambiarEstadoIncidencia(Usuario usuario, Incidencia incidencia, Estado nuevoEstado) {
         if (nuevoEstado == null) return;
 
-        Usuario usuSistema = usuarios.get(usuario.getLogin());
-        if (usuSistema == null) {
+        if (usuario == null) {
             throw new UsuarioNoEncontrado();
         }
+
+        Usuario usuSistema = repositorioUsuario.buscarPorLogin(usuario.getLogin())
+                .orElseThrow(UsuarioNoEncontrado::new);
 
         if (!usuSistema.getLogin().equals("admin")) {
             throw new CredencialesInvalidas();
         }
 
-        Incidencia incSistema = incidencias.get(incidencia.getId());
-        if (incSistema == null) {
-            throw new IncidenciaNoEncontrada();
-        }
+        Incidencia incSistema = repositorioIncidencias.buscarPorId(incidencia.getId())
+                .orElseThrow(IncidenciaNoEncontrada::new);
 
         incSistema.setEstado(nuevoEstado);
+        repositorioIncidencias.actualizar(incSistema);
     }
 
+    // ================================================================
+    // TIPOS DE INCIDENCIA
+    // ================================================================
+
+    public void anadirTipoIncidencia(Usuario usuario, TipoIncidencia tipo) {
+        if (usuario == null || !usuario.getLogin().equals("admin")) {
+            throw new CredencialesInvalidas();
+        }
+
+        if (tipo == null) {
+            throw new TipoIncidenciaInvalido();
+        }
+
+        Optional<TipoIncidencia> existente = repositorioTipos.buscarPorNombre(tipo.getNombre());
+        if (existente.isPresent()) {
+            throw new TipoIncidenciaEnUso();
+        }
+
+        repositorioTipos.guardar(tipo);
+    }
+
+    @Transactional
+    public void borrarTipoIncidencia(Usuario usuario, TipoIncidencia tipo) {
+        if (usuario == null || !usuario.getLogin().equals("admin")) {
+            throw new CredencialesInvalidas();
+        }
+
+        TipoIncidencia tipoSistema = repositorioTipos.buscarPorId(tipo.getId())
+                .orElseThrow(TipoIncidenciaNoencontrado::new);
+
+        // Comprobamos en incidencias si ese tipo está en uso (ya desde BD)
+        boolean enUso = repositorioIncidencias.buscarTodas().stream()
+                .anyMatch(i -> i.getTipo() != null &&
+                        i.getTipo().getId().equals(tipo.getId()));
+
+        if (enUso) {
+            throw new TipoIncidenciaEnUso();
+        }
+
+        repositorioTipos.borrar(tipoSistema);
+    }
 }
