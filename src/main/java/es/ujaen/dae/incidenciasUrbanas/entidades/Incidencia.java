@@ -31,10 +31,10 @@ public class Incidencia {
     @Enumerated(EnumType.STRING)
     private Estado estado;
 
-    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @ManyToOne
     private Usuario usuario; // quien la registra
 
-    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @ManyToOne
     private TipoIncidencia tipo; // tipo de incidencia
 
     @Lob

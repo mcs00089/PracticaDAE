@@ -9,7 +9,6 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
-@Transactional
 @Repository
 public class RepositorioUsuarios {
 
@@ -21,6 +20,7 @@ public class RepositorioUsuarios {
      * @param usuario Usuario a guardar
      * @return Usuario guardado
      */
+    @Transactional
     public Usuario guardar(Usuario usuario) {
         entityManager.persist(usuario);
         return usuario;
@@ -31,6 +31,7 @@ public class RepositorioUsuarios {
      * @param usuario Usuario con los datos actualizados
      * @return Usuario actualizado
      */
+    @Transactional
     public Usuario actualizar(Usuario usuario) {
         return entityManager.merge(usuario);
     }

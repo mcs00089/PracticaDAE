@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-@Transactional
 @Repository
 public class RepositorioIncidencias {
 
@@ -23,6 +22,7 @@ public class RepositorioIncidencias {
     /**
      * Guarda una incidencia en la base de datos.
      */
+    @Transactional
     public Incidencia guardar(Incidencia incidencia) {
         entityManager.persist(incidencia);
         return incidencia;
@@ -31,6 +31,7 @@ public class RepositorioIncidencias {
     /**
      * Actualiza una incidencia ya existente.
      */
+    @Transactional
     public Incidencia actualizar(Incidencia incidencia) {
         return entityManager.merge(incidencia);
     }
@@ -46,6 +47,7 @@ public class RepositorioIncidencias {
     /**
      * Borra una incidencia.
      */
+    @Transactional
     public void borrar(Incidencia incidencia) {
         if (entityManager.contains(incidencia)) {
             entityManager.remove(incidencia);

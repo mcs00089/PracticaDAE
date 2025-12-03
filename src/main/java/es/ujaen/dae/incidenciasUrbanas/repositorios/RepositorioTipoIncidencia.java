@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-@Transactional
 @Repository
 public class RepositorioTipoIncidencia {
 
@@ -24,6 +23,7 @@ public class RepositorioTipoIncidencia {
      * @param tipo TipoIncidencia a guardar
      * @return TipoIncidencia guardado
      */
+    @Transactional
     public TipoIncidencia guardar(TipoIncidencia tipo) {
         entityManager.persist(tipo);
         return tipo;
@@ -34,6 +34,7 @@ public class RepositorioTipoIncidencia {
      * @param tipo TipoIncidencia con los datos actualizados
      * @return TipoIncidencia actualizado
      */
+    @Transactional
     public TipoIncidencia actualizar(TipoIncidencia tipo) {
         return entityManager.merge(tipo);
     }
@@ -75,6 +76,7 @@ public class RepositorioTipoIncidencia {
      * Borra un tipo de incidencia de la base de datos.
      * @param tipo El tipo de incidencia a borrar
      */
+    @Transactional
     public void borrar(TipoIncidencia tipo) {
         if (entityManager.contains(tipo)) {
             entityManager.remove(tipo);

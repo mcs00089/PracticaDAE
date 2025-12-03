@@ -48,7 +48,6 @@ public class ServicioIncidencias {
         }
     }
 
-    @Transactional
     public void registrarUsuario(@Valid Usuario usuario) {
         if (usuario.getLogin().equals("admin")) {
             throw new UsuarioNoAdmin();
@@ -91,7 +90,6 @@ public class ServicioIncidencias {
         repositorioUsuario.actualizar(usuActualizar);
     }
 
-    @Transactional
     public Incidencia registrarIncidencia(@Valid Usuario usuario, @Valid TipoIncidencia tipoInci,
                                           String descripcion, String localizacion, String gps,
                                           byte[] foto) { // foto opcional
