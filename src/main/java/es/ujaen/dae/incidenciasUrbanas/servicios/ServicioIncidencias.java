@@ -14,6 +14,7 @@ import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
@@ -34,17 +35,24 @@ public class ServicioIncidencias {
     @Autowired
     private RepositorioIncidencias repositorioIncidencias;
 
-    private static final Usuario admin = new Usuario(
-            "Admin", "Administrador", LocalDate.of(1990, 1, 1),
-            "Ayuntamiento, Plaza Mayor", "657232313",
-            "admin@ayuntamiento.es", "admin", "admin123"
-    );
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    private Usuario admin;
 
     @PostConstruct
     @Transactional
     public void initAdmin() {
-        if (!repositorioUsuario.existeLogin(admin.getLogin())) {
+        if (!repositorioUsuario.existeLogin("admin")) {
+            admin = new Usuario(
+                    "Admin", "Administrador", LocalDate.of(1990, 1, 1),
+                    "Ayuntamiento, Plaza Mayor", "657232313",
+                    "admin@ayuntamiento.es", "admin",
+                    passwordEncoder.encode("admin123")
+            );
             repositorioUsuario.guardar(admin);
+        } else {
+            admin = repositorioUsuario.buscarPorLogin("admin").orElseThrow();
         }
     }
 
@@ -60,6 +68,7 @@ public class ServicioIncidencias {
         repositorioUsuario.guardar(usuario);
     }
 
+
     public Optional<Usuario> login(@NotBlank String login, @NotBlank String clave) {
         Optional<Usuario> usuarioOpt = repositorioUsuario.buscarPorLogin(login);
 
@@ -68,13 +77,14 @@ public class ServicioIncidencias {
         }
 
         Usuario usuario = usuarioOpt.get();
-        if (!usuario.getClave().equals(clave)) {
+        if (!passwordEncoder.matches(clave, usuario.getClave())) {
             return Optional.empty();
         }
 
         return Optional.of(usuario);
     }
 
+    @Transactional
     public void actualizarUsuario(@Valid Usuario usuarioLogueado, @Valid Usuario nuevosDatos) {
         Usuario usuActualizar = repositorioUsuario.buscarPorLogin(usuarioLogueado.getLogin())
                 .orElseThrow(UsuarioNoEncontrado::new);
@@ -85,14 +95,37 @@ public class ServicioIncidencias {
         usuActualizar.setDireccion(nuevosDatos.getDireccion());
         usuActualizar.setTelefono(nuevosDatos.getTelefono());
         usuActualizar.setFechaNacimiento(nuevosDatos.getFechaNacimiento());
-        usuActualizar.setClave(nuevosDatos.getClave());
+
+        if (nuevosDatos.getClave() != null && !nuevosDatos.getClave().isEmpty()) {
+            usuActualizar.setClave(passwordEncoder.encode(nuevosDatos.getClave()));
+        }
 
         repositorioUsuario.actualizar(usuActualizar);
     }
 
+    /**
+     * Busca un usuario por email o login
+     */
+    public Optional<Usuario> buscarUsuario(String Login) {
+        if (Login.equals(admin.getLogin()))
+            return Optional.of(admin);
+
+        Optional<Usuario> porEmail = repositorioUsuario.buscarPorLogin(Login);
+        if (porEmail.isPresent()) {
+            return porEmail;
+        }
+
+        return repositorioUsuario.buscarPorLogin(Login);
+    }
+
+
+    public List<Usuario> listarUsuarios() {
+        return repositorioUsuario.buscarTodos();
+    }
+
     public Incidencia registrarIncidencia(@Valid Usuario usuario, @Valid TipoIncidencia tipoInci,
                                           String descripcion, String localizacion, String gps,
-                                          byte[] foto) { // foto opcional
+                                          byte[] foto) {
         if (usuario == null || !repositorioUsuario.existeLogin(usuario.getLogin())) {
             throw new UsuarioNoEncontrado();
         }
@@ -195,12 +228,10 @@ public class ServicioIncidencias {
         return repositorioTipos.buscarTodas();
     }
 
-
-    // Voluntario  2
     @Transactional
     public List<Incidencia> incidenciasCercanas(String localizacionGPS) {
         String[] partes = localizacionGPS.split(",");
-        if (partes.length != 2) return List.of(); // formato inválido
+        if (partes.length != 2) return List.of();
 
         double latReferencia = Double.parseDouble(partes[0]);
         double lonReferencia = Double.parseDouble(partes[1]);
