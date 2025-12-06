@@ -92,7 +92,7 @@ public class TestControladorUsuario {
         );
         assertThat(r2.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
 
-        // login correcto
+        // login  correcto
         var r3 = restTemplate.postForEntity(
                 "/autenticacion",
                 new DAutenticacionUsuario("ana", "abcd"),
