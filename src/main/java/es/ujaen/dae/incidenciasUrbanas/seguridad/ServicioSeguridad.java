@@ -33,14 +33,24 @@ public class ServicioSeguridad {
                 .sessionManagement(session -> session.disable())
                 .addFilterAfter(new FiltroAutenticacionJwt(), UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
+                        // Rutas públicas
                         .requestMatchers(HttpMethod.POST, "/incidencias/usuarios").permitAll()
                         .requestMatchers(HttpMethod.POST, "/incidencias/autenticacion").permitAll()
 
+                        // Usuarios
                         .requestMatchers(HttpMethod.GET, "/incidencias/usuarios/{email}")
                         .access(new WebExpressionAuthorizationManager("#email == principal"))
-
                         .requestMatchers(HttpMethod.PUT, "/incidencias/usuarios/{email}")
                         .access(new WebExpressionAuthorizationManager("#email == principal"))
+
+                        // --- NUEVAS REGLAS PARA INCIDENCIAS ---
+                        // Admin puede crear tipos
+                        .requestMatchers(HttpMethod.POST, "/incidencias/tipos").hasRole("ADMIN")
+                        // Admin puede borrar tipos
+                        .requestMatchers(HttpMethod.DELETE, "/incidencias/tipos/**").hasRole("ADMIN")
+
+                        // Cualquier usuario autenticado puede ver tipos, crear incidencias y ver las suyas
+                        .requestMatchers("/incidencias/**").authenticated()
 
                         .anyRequest().authenticated()
                 )
