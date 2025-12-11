@@ -4,6 +4,8 @@ import es.ujaen.dae.incidenciasUrbanas.entidades.Usuario;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import es.ujaen.dae.incidenciasUrbanas.entidades.Incidencia;
+import es.ujaen.dae.incidenciasUrbanas.entidades.TipoIncidencia;
 
 @Service
 public class Mapeador {
@@ -47,6 +49,28 @@ public class Mapeador {
                 dUsuario.email(),
                 dUsuario.login(),
                 codificadorClaves.encode(dUsuario.clave())
+        );
+    }
+
+    public DTipoIncidencia dto(TipoIncidencia tipo) {
+        return new DTipoIncidencia(tipo.getId(), tipo.getNombre(), tipo.getDescripcion());
+    }
+
+    public TipoIncidencia entidad(DTipoIncidencia dTipo) {
+        // Para creación, a veces solo viene el nombre/descripción
+        return new TipoIncidencia(dTipo.nombre(), dTipo.descripcion());
+    }
+
+    public DIncidencia dto(Incidencia incidencia) {
+        return new DIncidencia(
+                incidencia.getId(),
+                incidencia.getUsuario().getLogin(),
+                incidencia.getTipo().getNombre(),
+                incidencia.getDescripcion(),
+                incidencia.getLocalizacion(),
+                incidencia.getLocalizacionGPS(),
+                incidencia.getFecha(),
+                incidencia.getEstado()
         );
     }
 }
