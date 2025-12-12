@@ -57,19 +57,9 @@ public class ControladorIncidencias {
             String login = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
             Usuario usuario = servicio.buscarUsuario(login).orElseThrow(UsuarioNoEncontrado::new);
 
-            // Creamos un objeto TipoIncidencia auxiliar solo con el ID para que el servicio lo busque
             TipoIncidencia tipoAux = new TipoIncidencia();
-            // Usamos reflexión o un setter si el ID no es accesible, pero asumiremos que el servicio lo busca por ID
-            // Como el servicio usa tipoInci.getId(), necesitamos un constructor o setter.
-            // Truco rápido: buscamos el tipo aquí o simulamos el objeto
-            // Dado que en tu entidad TipoIncidencia el id es autogenerado y no tiene setter publico facil,
-            // lo ideal es buscar el tipo antes o confiar en que el servicio lo busque.
-            // *Corrección para tu código*: El servicio busca por ID.
-            // Vamos a buscar el tipo aqui para pasarselo limpio al servicio o crear un objeto dummy.
-            // La forma mas limpia dado tu servicio:
 
-            // Creamos un tipo "dummy" sobrescribiendo el ID mediante reflexión o asumiendo que el servicio busca
-            // Modificamos ligeramente la lógica: Buscamos el tipo real aquí para pasarlo.
+
             TipoIncidencia tipo = servicio.listarTiposIncidencias().stream()
                     .filter(t -> t.getId() == dNueva.idTipo())
                     .findFirst()
@@ -106,25 +96,9 @@ public class ControladorIncidencias {
             String login = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
             Usuario usuario = servicio.buscarUsuario(login).orElseThrow(UsuarioNoEncontrado::new);
 
-            // Creamos una incidencia dummy con el ID para pasarla al servicio
-            // (El servicio la buscará en BDD por el ID)
-            // Necesitamos acceder al ID. Como tu Entidad Incidencia tiene id privado sin setter,
-            // el servicio debería tener un método borrarPorId, pero tiene borrar(Usuario, Incidencia).
-            // Lo solucionamos buscando la incidencia primero.
 
-            // Nota: Esto es un poco ineficiente (buscar para luego buscar dentro del servicio),
-            // pero se ajusta a tu API actual.
             List<Incidencia> todas = servicio.listarIncidenciasDeUsuario(usuario);
-            // Ojo: si es admin, esto de arriba solo lista las suyas.
-            // Mejor intentar simular el objeto si es posible, o usar el repositorio si pudiéramos (pero estamos en controller).
-            // Solución pragmática: Iteramos o asumimos que el servicio valida.
 
-            // Truco: Como no podemos crear una incidencia con ID específico fácilmente desde fuera (JPA),
-            // lo ideal sería añadir un método 'obtenerPorId' al servicio.
-            // PERO, como no podemos tocar el servicio según instrucciones estrictas, haremos lo siguiente:
-            // Usaremos reflexión para setear el ID en un objeto vacío, o mejor:
-            // Como el servicio hace "repositorioIncidencias.buscarPorId(incidencia.getId())",
-            // necesitamos pasarle un objeto que devuelva ese ID.
 
             Incidencia incDummy = new Incidencia();
             // Usamos reflexión para poner el ID privado (necesario pq no hay setter)
