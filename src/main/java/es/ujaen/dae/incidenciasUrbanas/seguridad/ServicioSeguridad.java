@@ -36,11 +36,17 @@ public class ServicioSeguridad {
                         .requestMatchers(HttpMethod.POST, "/incidencias/usuarios").permitAll()
                         .requestMatchers(HttpMethod.POST, "/incidencias/autenticacion").permitAll()
 
+                        .requestMatchers(HttpMethod.GET, "/incidencias/tipos").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/incidencias/tipos/{id}").permitAll()
+
                         .requestMatchers(HttpMethod.GET, "/incidencias/usuarios/{email}")
                         .access(new WebExpressionAuthorizationManager("#email == principal"))
 
                         .requestMatchers(HttpMethod.PUT, "/incidencias/usuarios/{email}")
                         .access(new WebExpressionAuthorizationManager("#email == principal"))
+
+                        .requestMatchers(HttpMethod.POST, "/incidencias/tipos").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/incidencias/tipos/{id}").hasRole("ADMIN")
 
                         .anyRequest().authenticated()
                 )

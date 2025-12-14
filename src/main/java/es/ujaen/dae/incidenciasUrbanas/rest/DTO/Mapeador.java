@@ -1,5 +1,6 @@
 package es.ujaen.dae.incidenciasUrbanas.rest.DTO;
 
+import es.ujaen.dae.incidenciasUrbanas.entidades.TipoIncidencia;
 import es.ujaen.dae.incidenciasUrbanas.entidades.Usuario;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -49,4 +50,20 @@ public class Mapeador {
                 codificadorClaves.encode(dUsuario.clave())
         );
     }
+
+    public DTipoIncidencia dto(TipoIncidencia tipo) {
+        return new DTipoIncidencia(
+                tipo.getId(),
+                tipo.getNombre(),
+                tipo.getDescripcion()
+        );
+    }
+
+    public TipoIncidencia entidad(DTipoIncidencia dTipo) {
+        return new TipoIncidencia(
+                dTipo.nombre(),
+                dTipo.descripcion()
+        );
+    }
+
 }
