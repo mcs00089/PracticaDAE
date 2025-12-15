@@ -41,6 +41,9 @@ public class Incidencia {
     @Basic(fetch = FetchType.LAZY)
     private byte[] foto;
 
+    @Version
+    private long version;
+
     public Incidencia(Usuario usuario,
                       TipoIncidencia tipo,
                       String descripcion,

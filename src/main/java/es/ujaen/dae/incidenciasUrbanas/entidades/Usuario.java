@@ -2,6 +2,7 @@ package es.ujaen.dae.incidenciasUrbanas.entidades;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.Version;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -35,6 +36,9 @@ public class Usuario {
 
     @NotBlank
     String clave;
+
+    @Version
+    private long version;
 
     public Usuario(String nombre, String apellidos, LocalDate fechaNacimiento, String direccion, String telefono, String email, String login, String clave) {
         this.nombre = nombre;

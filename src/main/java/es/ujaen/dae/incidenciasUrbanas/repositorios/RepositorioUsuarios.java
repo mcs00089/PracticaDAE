@@ -2,6 +2,7 @@ package es.ujaen.dae.incidenciasUrbanas.repositorios;
 
 import es.ujaen.dae.incidenciasUrbanas.entidades.Usuario;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import jakarta.persistence.NoResultException;
 import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
@@ -53,6 +54,17 @@ public class RepositorioUsuarios {
         } catch (NoResultException e) {
             return Optional.empty();
         }
+    }
+
+    @Transactional
+    public Usuario buscarPorLoginConBloqueo(String login) {
+        return entityManager.createQuery(
+                        "SELECT u FROM Usuario u WHERE u.login = :login",
+                        Usuario.class
+                )
+                .setParameter("login", login)
+                .setLockMode(LockModeType.PESSIMISTIC_WRITE)
+                .getSingleResult();
     }
 
 

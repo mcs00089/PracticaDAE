@@ -3,6 +3,7 @@ package es.ujaen.dae.incidenciasUrbanas.repositorios;
 import es.ujaen.dae.incidenciasUrbanas.entidades.Incidencia;
 import es.ujaen.dae.incidenciasUrbanas.entidades.TipoIncidencia;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import jakarta.persistence.NoResultException;
 import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
@@ -47,6 +48,15 @@ public class RepositorioTipoIncidencia {
     public Optional<TipoIncidencia> buscarPorId(int id) {
         TipoIncidencia tipo = entityManager.find(TipoIncidencia.class, id);
         return Optional.ofNullable(tipo);
+    }
+
+    @Transactional
+    public TipoIncidencia buscarPorIdConBloqueo(int id) {
+        return entityManager.find(
+                TipoIncidencia.class,
+                id,
+                LockModeType.PESSIMISTIC_WRITE
+        );
     }
 
     /**

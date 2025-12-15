@@ -5,6 +5,7 @@ import es.ujaen.dae.incidenciasUrbanas.entidades.Incidencia;
 import es.ujaen.dae.incidenciasUrbanas.entidades.TipoIncidencia;
 import es.ujaen.dae.incidenciasUrbanas.entidades.Usuario;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Repository;
@@ -34,6 +35,11 @@ public class RepositorioIncidencias {
     @Transactional
     public Incidencia actualizar(Incidencia incidencia) {
         return entityManager.merge(incidencia);
+    }
+
+    @Transactional
+    public Incidencia buscarPorIdConBloqueo(int id) {
+        return entityManager.find(Incidencia.class, id, LockModeType.PESSIMISTIC_WRITE);
     }
 
     /**
@@ -117,9 +123,12 @@ public class RepositorioIncidencias {
 
     public List<Incidencia> buscarPorEstados(List<Estado> estados) {
         return entityManager.createQuery(
-                        "SELECT i FROM Incidencia i WHERE i.estado IN :estados", Incidencia.class)
-                .setParameter("estados", estados)
+                        "SELECT i FROM Incidencia i WHERE i.estado IN :e",
+                        Incidencia.class)
+                .setParameter("e", estados)
                 .getResultList();
     }
+
+
 
 }

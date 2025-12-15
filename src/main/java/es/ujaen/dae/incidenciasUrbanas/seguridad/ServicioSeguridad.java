@@ -49,6 +49,9 @@ public class ServicioSeguridad {
                         .requestMatchers(HttpMethod.GET, "/incidencias/propias").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/incidencias/{idIncidencia}").authenticated()
 
+                        .requestMatchers(HttpMethod.POST, "/incidencias/{id}/foto").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/incidencias/{id}/foto").authenticated()
+
                         .anyRequest().authenticated()
                 )
                 .build();

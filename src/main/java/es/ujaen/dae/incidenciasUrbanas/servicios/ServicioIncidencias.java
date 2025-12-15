@@ -85,13 +85,12 @@ public class ServicioIncidencias {
     }
 
     @Transactional
-    public void actualizarUsuario(@Valid Usuario usuarioLogueado, @Valid Usuario nuevosDatos) {
-        Usuario usuActualizar = repositorioUsuario.buscarPorLogin(usuarioLogueado.getLogin())
-                .orElseThrow(UsuarioNoEncontrado::new);
+    public void actualizarUsuario(Usuario usuarioLogueado, Usuario nuevosDatos) {
+
+        Usuario usuActualizar = repositorioUsuario.buscarPorLoginConBloqueo(usuarioLogueado.getLogin());
 
         usuActualizar.setNombre(nuevosDatos.getNombre());
         usuActualizar.setApellidos(nuevosDatos.getApellidos());
-        usuActualizar.setEmail(nuevosDatos.getEmail());
         usuActualizar.setDireccion(nuevosDatos.getDireccion());
         usuActualizar.setTelefono(nuevosDatos.getTelefono());
         usuActualizar.setFechaNacimiento(nuevosDatos.getFechaNacimiento());
@@ -99,8 +98,6 @@ public class ServicioIncidencias {
         if (nuevosDatos.getClave() != null && !nuevosDatos.getClave().isEmpty()) {
             usuActualizar.setClave(passwordEncoder.encode(nuevosDatos.getClave()));
         }
-
-        repositorioUsuario.actualizar(usuActualizar);
     }
 
     /**
@@ -150,19 +147,19 @@ public class ServicioIncidencias {
     }
 
     @Transactional
-    public void borrarIncidencia(@Valid Usuario usuario, @Valid Incidencia incidencia) {
-        if (usuario == null)
-            throw new UsuarioNoEncontrado();
+    public void borrarIncidencia(Usuario usuario, Incidencia incidencia) {
 
-        Incidencia incSistema = repositorioIncidencias.buscarPorId(incidencia.getId())
-                .orElseThrow(IncidenciaNoEncontrada::new);
+        if (usuario == null) throw new UsuarioNoEncontrado();
 
-        Usuario usuSistema = repositorioUsuario.buscarPorLogin(usuario.getLogin())
-                .orElseThrow(UsuarioNoEncontrado::new);
+        Usuario usuSistema = repositorioUsuario
+                .buscarPorLoginConBloqueo(usuario.getLogin());
 
-        boolean esAdmin = usuario.getLogin().equals("admin");
+        Incidencia incSistema = repositorioIncidencias
+                .buscarPorIdConBloqueo(incidencia.getId());
 
-        if (esAdmin || incSistema.getUsuario().getLogin().equals(usuario.getLogin())) {
+        boolean esAdmin = usuSistema.getLogin().equals("admin");
+
+        if (esAdmin || incSistema.getUsuario().getLogin().equals(usuSistema.getLogin())) {
             if (esAdmin || incSistema.getEstado() == Estado.PENDIENTE) {
                 repositorioIncidencias.borrar(incSistema);
             } else {
@@ -190,16 +187,15 @@ public class ServicioIncidencias {
         repositorioTipos.guardar(tipo);
     }
 
-    public void borrarTipoIncidencia(@Valid Usuario usuario, @Valid TipoIncidencia tipo) {
-        if (usuario == null || !usuario.getLogin().equals("admin")) {
+    @Transactional
+    public void borrarTipoIncidencia(Usuario usuario, TipoIncidencia tipo) {
+
+        if (!usuario.getLogin().equals("admin"))
             throw new CredencialesInvalidas();
-        }
 
-        TipoIncidencia tipoSistema = repositorioTipos.buscarPorId(tipo.getId())
-                .orElseThrow(TipoIncidenciaNoencontrado::new);
+        TipoIncidencia tipoSistema = repositorioTipos.buscarPorIdConBloqueo(tipo.getId());
 
-        boolean enUso = repositorioIncidencias.contarPorTipo(tipoSistema) > 0;
-        if (enUso) {
+        if (repositorioIncidencias.contarPorTipo(tipoSistema) > 0) {
             throw new TipoIncidenciaEnUso();
         }
 
@@ -207,21 +203,16 @@ public class ServicioIncidencias {
     }
 
     @Transactional
-    public void cambiarEstadoIncidencia(@Valid Usuario usuario, @Valid Incidencia incidencia, @Valid Estado nuevoEstado) {
-        if (nuevoEstado == null) return;
+    public void cambiarEstadoIncidencia(Usuario usuario,
+                                        Incidencia incidencia,
+                                        Estado nuevoEstado) {
 
-        Usuario usuSistema = repositorioUsuario.buscarPorLogin(usuario.getLogin())
-                .orElseThrow(UsuarioNoEncontrado::new);
-
-        if (!usuSistema.getLogin().equals("admin")) {
+        if (!usuario.getLogin().equals("admin"))
             throw new CredencialesInvalidas();
-        }
 
-        Incidencia incSistema = repositorioIncidencias.buscarPorId(incidencia.getId())
-                .orElseThrow(IncidenciaNoEncontrada::new);
+        Incidencia inc = repositorioIncidencias.buscarPorIdConBloqueo(incidencia.getId());
 
-        incSistema.setEstado(nuevoEstado);
-        repositorioIncidencias.actualizar(incSistema);
+        inc.setEstado(nuevoEstado);
     }
 
     public List<TipoIncidencia> listarTiposIncidencias() {
