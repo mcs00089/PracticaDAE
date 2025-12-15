@@ -12,6 +12,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.expression.WebExpressionAuthorizationManager;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+
 @Configuration
 public class ServicioSeguridad {
 
@@ -53,8 +54,18 @@ public class ServicioSeguridad {
                         .requestMatchers(HttpMethod.POST, "/incidencias/tipos").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/incidencias/tipos/{id}").hasRole("ADMIN")
 
+                        // --- NUEVAS REGLAS PARA INCIDENCIAS ---
+                        // Admin puede crear tipos
+                        .requestMatchers(HttpMethod.POST, "/incidencias/tipos").hasRole("ADMIN")
+                        // Admin puede borrar tipos
+                        .requestMatchers(HttpMethod.DELETE, "/incidencias/tipos/**").hasRole("ADMIN")
+
+                        // Cualquier usuario autenticado puede ver tipos, crear incidencias y ver las suyas
+                        .requestMatchers("/incidencias/**").authenticated()
+
                         .anyRequest().authenticated()
                 )
                 .build();
     }
+
 }
