@@ -24,32 +24,6 @@ public class ControladorIncidencias {
     @Autowired
     Mapeador mapeador;
 
-    // --- TIPOS DE INCIDENCIA ---
-
-    @GetMapping("/tipos")
-    public List<DTipoIncidencia> listarTipos() {
-        return servicio.listarTiposIncidencias().stream()
-                .map(t -> mapeador.dto(t))
-                .toList();
-    }
-
-    @PostMapping("/tipos")
-    public ResponseEntity<Void> anadirTipo(@RequestBody DTipoIncidencia dTipo) {
-        try {
-            String login = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-            Usuario admin = servicio.buscarUsuario(login).orElseThrow(UsuarioNoEncontrado::new);
-
-            servicio.anadirTipoIncidencia(admin, mapeador.entidad(dTipo));
-            return ResponseEntity.status(HttpStatus.CREATED).build();
-        } catch (CredencialesInvalidas e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        } catch (TipoIncidenciaEnUso e) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).build();
-        }
-    }
-
-    // --- INCIDENCIAS ---
-
     @PostMapping
     public ResponseEntity<DIncidencia> crearIncidencia(@RequestBody DNuevaIncidencia dNueva) {
         try {

@@ -9,9 +9,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.access.expression.WebExpressionAuthorizationManager;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-
 
 @Configuration
 public class ServicioSeguridad {
@@ -35,37 +33,24 @@ public class ServicioSeguridad {
                         UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
 
-                        // Registro y login
                         .requestMatchers(HttpMethod.POST, "/incidencias/usuarios").permitAll()
                         .requestMatchers(HttpMethod.POST, "/incidencias/autenticacion").permitAll()
 
-                        // Tipos (públicos)
                         .requestMatchers(HttpMethod.GET, "/incidencias/tipos").permitAll()
                         .requestMatchers(HttpMethod.GET, "/incidencias/tipos/{id}").permitAll()
 
-                        // Usuario (solo su propio login)
-                        .requestMatchers(HttpMethod.GET, "/incidencias/usuarios/{login}")
-                        .access(new WebExpressionAuthorizationManager("#login == principal"))
-
-                        .requestMatchers(HttpMethod.PUT, "/incidencias/usuarios/{login}")
-                        .access(new WebExpressionAuthorizationManager("#login == principal"))
-
-                        // Admin
                         .requestMatchers(HttpMethod.POST, "/incidencias/tipos").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/incidencias/tipos/{id}").hasRole("ADMIN")
 
-                        // --- NUEVAS REGLAS PARA INCIDENCIAS ---
-                        // Admin puede crear tipos
-                        .requestMatchers(HttpMethod.POST, "/incidencias/tipos").hasRole("ADMIN")
-                        // Admin puede borrar tipos
-                        .requestMatchers(HttpMethod.DELETE, "/incidencias/tipos/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/incidencias/usuarios/{login}").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/incidencias/usuarios/{login}").authenticated()
 
-                        // Cualquier usuario autenticado puede ver tipos, crear incidencias y ver las suyas
-                        .requestMatchers("/incidencias/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/incidencias").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/incidencias/propias").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/incidencias/{idIncidencia}").authenticated()
 
                         .anyRequest().authenticated()
                 )
                 .build();
     }
-
 }
