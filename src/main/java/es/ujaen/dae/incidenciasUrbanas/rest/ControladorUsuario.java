@@ -13,7 +13,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-
 @RestController
 @RequestMapping("/incidencias")
 public class ControladorUsuario {
@@ -28,33 +27,43 @@ public class ControladorUsuario {
     @ExceptionHandler(ConstraintViolationException.class)
     public void mapeadoExcepcionConstraintViolationException() {}
 
-
+    // =========================
+    // Registro de usuario
+    // =========================
     @PostMapping("/usuarios")
     public ResponseEntity<Void> nuevoUsuario(@RequestBody DUsuario usuario) {
         try {
-            servicioIncidencias.registrarUsuario(mapeador.entidadNueva(usuario));
-        }
-        catch(UsuarioYaExiste e) {
+            servicioIncidencias.registrarUsuario(
+                    mapeador.entidadNueva(usuario)
+            );
+            return ResponseEntity.status(HttpStatus.CREATED).build();
+        } catch (UsuarioYaExiste e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).build();
         }
-
-        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
-    @GetMapping("/usuarios/{email}")
-    public ResponseEntity<DUsuario> obtenerUsuario(@PathVariable String email) {
+    // =========================
+    // Obtener usuario por login
+    // =========================
+    @GetMapping("/usuarios/{login}")
+    public ResponseEntity<DUsuario> obtenerUsuario(@PathVariable String login) {
         try {
-            Usuario usuario = servicioIncidencias.buscarUsuario(email).orElseThrow(UsuarioNoEncontrado::new);
+            Usuario usuario = servicioIncidencias
+                    .buscarUsuario(login)
+                    .orElseThrow(UsuarioNoEncontrado::new);
+
             return ResponseEntity.ok(mapeador.dto(usuario));
-        }
-        catch(UsuarioNoEncontrado e) {
+        } catch (UsuarioNoEncontrado e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
     }
 
-    @PutMapping("/usuarios/{email}")
+    // =========================
+    // Actualizar usuario
+    // =========================
+    @PutMapping("/usuarios/{login}")
     public ResponseEntity<Void> actualizarUsuario(
-            @PathVariable String email,
+            @PathVariable String login,
             @RequestBody DUsuario datosActualizados
     ) {
         try {
@@ -63,21 +72,20 @@ public class ControladorUsuario {
                     .getAuthentication()
                     .getPrincipal();
 
-            Usuario usuarioAActualizar = servicioIncidencias
-                    .buscarUsuario(email)
-                    .orElseThrow(UsuarioNoEncontrado::new);
-
-            if (!usuarioAActualizar.getLogin().equals(loginLogueado)) {
+            if (!login.equals(loginLogueado)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
             }
 
+            Usuario usuarioActual = servicioIncidencias
+                    .buscarUsuario(login)
+                    .orElseThrow(UsuarioNoEncontrado::new);
+
             Usuario nuevosDatos = mapeador.entidad(datosActualizados);
 
-            servicioIncidencias.actualizarUsuario(usuarioAActualizar, nuevosDatos);
+            servicioIncidencias.actualizarUsuario(usuarioActual, nuevosDatos);
 
             return ResponseEntity.noContent().build();
-        }
-        catch (UsuarioNoEncontrado e) {
+        } catch (UsuarioNoEncontrado e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
     }

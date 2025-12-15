@@ -12,7 +12,6 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.expression.WebExpressionAuthorizationManager;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-
 @Configuration
 public class ServicioSeguridad {
 
@@ -31,20 +30,26 @@ public class ServicioSeguridad {
         return http
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.disable())
-                .addFilterAfter(new FiltroAutenticacionJwt(), UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(new FiltroAutenticacionJwt(),
+                        UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
+
+                        // Registro y login
                         .requestMatchers(HttpMethod.POST, "/incidencias/usuarios").permitAll()
                         .requestMatchers(HttpMethod.POST, "/incidencias/autenticacion").permitAll()
 
+                        // Tipos (públicos)
                         .requestMatchers(HttpMethod.GET, "/incidencias/tipos").permitAll()
                         .requestMatchers(HttpMethod.GET, "/incidencias/tipos/{id}").permitAll()
 
-                        .requestMatchers(HttpMethod.GET, "/incidencias/usuarios/{email}")
-                        .access(new WebExpressionAuthorizationManager("#email == principal"))
+                        // Usuario (solo su propio login)
+                        .requestMatchers(HttpMethod.GET, "/incidencias/usuarios/{login}")
+                        .access(new WebExpressionAuthorizationManager("#login == principal"))
 
-                        .requestMatchers(HttpMethod.PUT, "/incidencias/usuarios/{email}")
-                        .access(new WebExpressionAuthorizationManager("#email == principal"))
+                        .requestMatchers(HttpMethod.PUT, "/incidencias/usuarios/{login}")
+                        .access(new WebExpressionAuthorizationManager("#login == principal"))
 
+                        // Admin
                         .requestMatchers(HttpMethod.POST, "/incidencias/tipos").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/incidencias/tipos/{id}").hasRole("ADMIN")
 
@@ -52,5 +57,4 @@ public class ServicioSeguridad {
                 )
                 .build();
     }
-
 }
