@@ -109,4 +109,43 @@ public class TestControladorTipoIncidencia {
                         .anyMatch(t -> t.nombre().equals("Semáforo roto"))
         ).isTrue();
     }
+
+    @Test
+    @DirtiesContext
+    void testCrearTipoComoUsuarioNoAdmin() {
+        // Creamos un usuario normal
+        DUsuario usuario = new DUsuario(
+                "Juan", "Perez",
+                java.time.LocalDate.now(),
+                "Calle X",
+                "600000001",
+                "juan@test.com",
+                "juan",
+                "clave"
+        );
+
+        try {
+            restTemplate.postForEntity("/usuarios", usuario, Void.class);
+        } catch (Exception ignored) {}
+
+        String tokenUsuario = obtenerToken("juan", "clave");
+
+        DTipoIncidencia nuevo = new DTipoIncidencia(
+                0,
+                "Contenedor lleno",
+                "No recogen la basura"
+        );
+
+        var reqCrear = new RequestEntity<>(
+                nuevo,
+                headerAuth(tokenUsuario),
+                HttpMethod.POST,
+                java.net.URI.create("/tipos")
+        );
+
+        var respCrear = restTemplate.exchange(reqCrear, Void.class);
+
+        // Un usuario normal NO puede crear tipos
+        assertThat(respCrear.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    }
 }

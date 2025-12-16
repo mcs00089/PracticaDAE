@@ -26,7 +26,7 @@ public class ControladorIncidencias {
 
     // --- TIPOS DE INCIDENCIA ---
 
-    @GetMapping("/tipos")
+  /*  @GetMapping("/tipos")
     public List<DTipoIncidencia> listarTipos() {
         return servicio.listarTiposIncidencias().stream()
                 .map(t -> mapeador.dto(t))
@@ -47,7 +47,7 @@ public class ControladorIncidencias {
             return ResponseEntity.status(HttpStatus.CONFLICT).build();
         }
     }
-
+*/
     // --- INCIDENCIAS ---
 
     @PostMapping
