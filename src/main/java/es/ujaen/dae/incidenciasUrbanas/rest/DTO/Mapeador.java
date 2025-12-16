@@ -6,6 +6,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import es.ujaen.dae.incidenciasUrbanas.entidades.Incidencia;
 import es.ujaen.dae.incidenciasUrbanas.entidades.TipoIncidencia;
+import java.util.List;
+
 
 @Service
 public class Mapeador {
@@ -60,6 +62,9 @@ public class Mapeador {
         // Para creación, a veces solo viene el nombre/descripción
         return new TipoIncidencia(dTipo.nombre(), dTipo.descripcion());
     }
+    public List<DTipoIncidencia> dtoTipos(List<TipoIncidencia> tipos) {
+    return tipos.stream().map(this::dto).toList();
+}
 
     public DIncidencia dto(Incidencia incidencia) {
         return new DIncidencia(
